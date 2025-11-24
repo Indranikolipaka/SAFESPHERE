@@ -1,0 +1,4 @@
+﻿body.student-bg{ background: linear-gradient(120deg,#ffefef,#fffaf2); }
+.bunny-panel{ background: linear-gradient(180deg,#fff,#ffeef8); border:2px dashed #ffd1e8 }
+.panel-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px }
+.panel-item{ padding:12px; border-radius:8px; background:rgba(255,255,255,0.7); text-align:center }

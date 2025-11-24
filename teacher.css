@@ -1,0 +1,4 @@
+﻿body.teacher-bg{ background: linear-gradient(120deg,#fff7ec,#f7fff3); }
+.teacher-bg header{ background:linear-gradient(90deg,#ffe6f0,#fff2e6); padding:12px; border-radius:8px }
+ul { list-style:none; padding:0 }
+ul li { margin-bottom:12px; padding:10px; border-bottom:1px solid #eee }

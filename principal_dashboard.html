@@ -1,0 +1,116 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Principal Dashboard - SafeSphere</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/principal.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Simple gradient background */
+    body.principal-bg {
+      background: linear-gradient(to bottom right, #ffe6f2, #fff0f5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Floating petals */
+    .petal {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: url('https://cdn-icons-png.flaticon.com/512/616/616408.png') no-repeat center/contain;
+      pointer-events: none;
+      animation: floatUp linear infinite;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateY(-50px) scale(1); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="principal-bg">
+  <div class="container">
+    <header>
+      <h2>Hello Principal of RBVRR Womens College</h2>
+      <nav>
+        <a href="/change_password" class="btn">Change Password</a>
+        <a href="/logout" class="btn">Logout</a>
+      </nav>
+    </header>
+    <main>
+      <section class="card">
+        <h3>Overall Complaint Status</h3>
+        <canvas id="overallPie"></canvas>
+      </section>
+
+      <section class="card">
+        <h3>Teachers Performance</h3>
+        <table>
+          <thead><tr><th>Teacher</th><th>Accepted</th><th>Rejected</th><th>Actions</th></tr></thead>
+          <tbody>
+          {% for t in teachers %}
+            <tr>
+              <td>{{ t['name'] }}</td>
+              <td>{{ t['performance_accepted'] }}</td>
+              <td>{{ t['performance_rejected'] }}</td>
+              <td>
+                <form method="post" action="/delete_teacher" onsubmit="return confirm('Delete teacher {{ t["name"] }}? This cannot be undone unless complaints are reassigned.');" style="display:inline">
+                  <input type="hidden" name="teacher_id" value="{{ t['id'] }}">
+                  <button type="submit" class="btn danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h3>Create Teacher Account</h3>
+        <form method="post" action="/create_teacher" class="small-form">
+          <label for="fullname">Full name</label><br>
+          <input id="fullname" name="fullname" required><br>
+
+          <label for="username">Username</label><br>
+          <input id="username" name="username" required><br>
+
+          <label for="password">Temporary Password</label><br>
+          <input id="password" name="password" type="password" required minlength="8"><br>
+
+          <label for="email">Email (optional)</label><br>
+          <input id="email" name="email" type="email"><br>
+
+          <label for="phone">Phone (optional)</label><br>
+          <input id="phone" name="phone"><br>
+
+          <button type="submit" class="btn">Create Teacher</button>
+        </form>
+        <p class="muted">Teachers can change their password after first login.</p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Overall Pie Chart
+    const pc = {
+      labels: [{% for row in pc %}'{{ row['status'] }}',{% endfor %}],
+      datasets: [{data:[{% for row in pc %}{{ row['c'] }},{% endfor %}], backgroundColor:['#42a5f5','#ffca28','#ef5350','#9ccc65']}]
+    };
+    new Chart(document.getElementById('overallPie'), {type:'pie', data:pc});
+
+    // Create floating petals
+    const petalCount = 15;
+    for(let i=0; i<petalCount; i++){
+      const petal = document.createElement('div');
+      petal.className = 'petal';
+      petal.style.left = Math.random()*window.innerWidth + 'px';
+      petal.style.animationDuration = (5 + Math.random()*5) + 's';
+      document.body.appendChild(petal);
+    }
+  </script>
+</body>
+</html>
+

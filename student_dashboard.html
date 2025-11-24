@@ -1,0 +1,177 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Student Dashboard - SafeSphere</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/student.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Fun hover effect */
+    .panel-item {
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+    }
+    .panel-item:hover {
+      transform: scale(1.05) rotate(-2deg);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    /* Highlight resolved issues */
+    #resolved.resolved {
+      color: green;
+      font-weight: bold;
+      animation: pop 0.6s ease;
+    }
+    @keyframes pop { from {transform: scale(0.5); opacity:0} to {transform: scale(1); opacity:1} }
+
+    /* Confetti container */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body class="student-bg">
+  <canvas id="confetti-canvas"></canvas>
+  <div class="container">
+    <header>
+      <h2>Hello {{ student['name'] }}, ID: {{ student['unique_code'] }}</h2>
+      <a href="/logout" class="btn">Logout</a>
+    </header>
+    <main>
+      <section class="bunny-panel card">
+        <div class="panel-grid">
+          <div class="panel-item"><a href="/complaint/new">File a Complaint</a></div>
+          <div class="panel-item" id="total-count">Number of Complaints Filed: {{ total }}</div>
+          <div class="panel-item" id="accepted-count">Accepted: {{ accepted }}</div>
+          <div class="panel-item" id="rejected-count">Rejected: {{ rejected }}</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>My Complaints</h3>
+        {% if complaints %}
+          <ul class="complaint-list">
+          {% for c in complaints %}
+            <li class="complaint-item">
+              <strong>#{{ c['id'] }}</strong> — <em>{{ c['category'] }}</em> — <strong>Status:</strong> {{ c['status'] }}<br>
+              <strong>Assigned to:</strong> {{ c['teacher_name'] or 'Unassigned' }}<br>
+              <div>{{ c['description'] }}</div>
+              {% if c['attachment'] %}
+                <div>Attachment: <a href="/uploads/{{ c['attachment'] }}" target="_blank">View</a></div>
+              {% endif %}
+
+              {% set fb = feedback_map.get(c['id']) %}
+              {% if fb %}
+                <div class="muted">You answered: {{ fb['student_feedback'] }}</div>
+              {% else %}
+                {% if c['status'] != 'Pending' %}
+                  <form method="post" action="/complaint/feedback" class="small-form">
+                    <input type="hidden" name="complaint_id" value="{{ c['id'] }}">
+                    <label>Is the issue resolved?</label><br>
+                    <select name="resolved" required>
+                      <option value="">--Select--</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select><br>
+                    <label>Comments (optional)</label><br>
+                    <textarea name="comment" rows="2" style="width:100%"></textarea><br>
+                    <button type="submit" class="btn">Submit Feedback</button>
+                  </form>
+                {% else %}
+                  <div class="muted">Please wait for the teacher/principal to review your complaint.</div>
+                {% endif %}
+              {% endif %}
+            </li>
+          {% endfor %}
+          </ul>
+        {% else %}
+          <div>No complaints filed yet.</div>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Animate numbers counting up
+    function animateCount(id, target) {
+      const el = document.getElementById(id);
+      let count = 0;
+      const interval = setInterval(() => {
+        if(count >= target) clearInterval(interval);
+        else el.textContent = el.textContent.split(':')[0] + ': ' + (++count);
+      }, 100);
+    }
+
+    animateCount('total-count', {{ total }});
+    animateCount('accepted-count', {{ accepted }});
+    animateCount('rejected-count', {{ rejected }});
+
+    // Fun resolved toggle and trigger confetti
+    const resolvedEl = document.getElementById('resolved');
+    if({{ accepted }} > 0) {
+      resolvedEl.textContent = 'Yes 🎉';
+      resolvedEl.classList.add('resolved');
+      launchConfetti();
+    }
+
+    // Confetti effect
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const confettiCount = 150;
+      const confetti = [];
+
+      for(let i=0; i<confettiCount; i++){
+        confetti.push({
+          x: Math.random()*canvas.width,
+          y: Math.random()*canvas.height - canvas.height,
+          r: Math.random()*6+2,
+          d: Math.random()*confettiCount,
+          color: `hsl(${Math.random()*360}, 100%, 50%)`,
+          tilt: Math.random()*10-10,
+          tiltAngleIncrement: Math.random()*0.07+0.05
+        });
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confetti.forEach((c, i) => {
+          ctx.beginPath();
+          ctx.lineWidth = c.r;
+          ctx.strokeStyle = c.color;
+          ctx.moveTo(c.x + c.tilt + c.r/2, c.y);
+          ctx.lineTo(c.x + c.tilt, c.y + c.tilt + c.r/2);
+          ctx.stroke();
+          c.tiltAngle += c.tiltAngleIncrement;
+          c.y += (Math.cos(c.d) + 3 + c.r/2)/2;
+          c.tilt = Math.sin(c.tiltAngle) * 15;
+          if(c.y > canvas.height) {
+            c.y = -10;
+            c.x = Math.random()*canvas.width;
+          }
+        });
+        requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    // Make canvas resize with window
+    window.addEventListener('resize', () => {
+      const canvas = document.getElementById('confetti-canvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
+

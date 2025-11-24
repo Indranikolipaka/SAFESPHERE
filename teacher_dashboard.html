@@ -1,0 +1,132 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Teacher Dashboard - SafeSphere</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/teacher.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    async function takeAction(id, action) {
+      let reason = '';
+      if (action === 'reject' || action === 'forward') reason = prompt('Provide reason:')||'';
+      const resp = await fetch('/complaint/action', {method:'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: `complaint_id=${id}&action=${action}&reason=${encodeURIComponent(reason)}`});
+      if (resp.ok) location.reload();
+      else alert('Action failed');
+    }
+  </script>
+</head>
+<body class="teacher-bg">
+  <div class="container">
+    <header>
+      <h2>Welcome {{ teacher['name'] }}, ID: {{ teacher['teacher_code'] }}</h2>
+      <nav>
+        <a href="/change_password" class="btn">Change Password</a>
+        <a href="/logout" class="btn">Logout</a>
+      </nav>
+    </header>
+    <main>
+      <section class="card">
+        <canvas id="pieChart" width="400" height="200"></canvas>
+      </section>
+
+      <section class="card">
+        <h3>Complaints Assigned</h3>
+        <ul>
+        {% for c in complaints %}
+          <li>
+            <strong>#{{ c['id'] }}</strong> from {{ c['student_name'] }} — {{ c['category'] }} — {{ c['status'] }}
+            <div>{{ c['description'] }}</div>
+            <div>
+              <button onclick="takeAction({{ c['id'] }}, 'accept')">Accept</button>
+              <button onclick="takeAction({{ c['id'] }}, 'reject')">Reject</button>
+              <button onclick="takeAction({{ c['id'] }}, 'forward')">Forward to Principal</button>
+            </div>
+          </li>
+        {% else %}
+          <li>No complaints</li>
+        {% endfor %}
+        </ul>
+      </section>
+
+      <section class="card">
+        <h3>Create Student Account</h3>
+        <form method="post" action="/create_student" class="small-form">
+          <label for="fullname">Full name</label><br>
+          <input id="fullname" name="fullname" required><br>
+
+          <label for="username">Username</label><br>
+          <input id="username" name="username" required><br>
+
+          <label for="password">Temporary Password</label><br>
+          <input id="password" name="password" type="password" required minlength="8"><br>
+
+          <label for="roll_no">Roll number (optional)</label><br>
+          <input id="roll_no" name="roll_no"><br>
+
+          <label for="email">Email (optional)</label><br>
+          <input id="email" name="email" type="email"><br>
+
+          <label for="phone">Phone (optional)</label><br>
+          <input id="phone" name="phone"><br>
+
+          <button type="submit" class="btn">Create Student</button>
+        </form>
+      </section>
+      
+      <section class="card">
+        <h3>Account Applications</h3>
+        {% if applicants %}
+          <ul>
+          {% for a in applicants %}
+            <li>
+              <strong>{{ a['name'] }}</strong> ({{ a['username'] }}) — {{ a['email'] or 'no email' }} — Code: {{ a['unique_code'] }}
+              <form method="post" action="/approve_account" style="display:inline">
+                <input type="hidden" name="user_id" value="{{ a['user_id'] }}">
+                <button class="btn" type="submit">Approve</button>
+              </form>
+              <form method="post" action="/reject_account" style="display:inline" onsubmit="return confirm('Reject this application and remove data?');">
+                <input type="hidden" name="user_id" value="{{ a['user_id'] }}">
+                <button class="btn danger" type="submit">Reject</button>
+              </form>
+            </li>
+          {% endfor %}
+          </ul>
+        {% else %}
+          <div>No pending applications</div>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <h3>My Students</h3>
+        {% if my_students %}
+          <table>
+            <thead><tr><th>Name</th><th>Code</th><th>Roll No</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for s in my_students %}
+              <tr>
+                <td>{{ s['name'] }}</td>
+                <td>{{ s['unique_code'] }}</td>
+                <td>{{ s['roll_no'] or '-' }}</td>
+                <td>
+                  <form method="post" action="/delete_student" onsubmit="return confirm('Delete student {{ s["name"] }}?');" style="display:inline">
+                    <input type="hidden" name="student_id" value="{{ s['id'] }}">
+                    <button class="btn danger" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div>You currently have no students assigned.</div>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+  <script>
+    const data = {labels:['Accepted','Rejected'], datasets:[{data:[{{ accepted }}, {{ rejected }}], backgroundColor:['#4caf50','#f44336']}]};
+    new Chart(document.getElementById('pieChart'), {type:'pie', data});
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/login.css">
+  <script src="/static/js/main.js" defer></script>
+
+  <style>
+    /* Popup animation for container */
+    .popup { 
+      animation: pop 700ms ease; 
+    }
+
+    @keyframes pop { 
+      from { transform: scale(0.6); opacity:0 } 
+      to { transform: scale(1); opacity:1 } 
+    }
+
+    /* Center header/logo */
+    header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 0;
+      position: relative;
+      z-index: 2; /* above bubbles */
+    }
+
+    /* Logo size and bounce animation */
+    .logo {
+      max-width: 800px;
+      height: auto;
+      animation: logoBounce 1s ease forwards;
+    }
+
+    @keyframes logoBounce {
+      0%   { transform: scale(0.5); opacity: 0; }
+      70%  { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Login card fade/slide in */
+    .login-card {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: cardAppear 1s ease 1s forwards; /* delayed after logo bounce */
+      position: relative;
+      z-index: 2; /* above bubbles */
+    }
+
+    @keyframes cardAppear {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Button hover effect */
+    .btn {
+      transition: transform 0.2s ease, background-color 0.3s ease;
+    }
+    .btn:hover {
+      transform: scale(1.05);
+      background-color: #4caf50; /* playful green */
+      color: #fff;
+    }
+
+    /* Floating bubbles behind card */
+    body {
+      position: relative;
+      overflow: hidden;
+      background: #f0f8ff; /* light playful background */
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(173, 216, 230, 0.4); /* light blue */
+      pointer-events: none;
+      animation: floatUp linear infinite;
+      z-index: 1;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+      50% { opacity: 0.7; }
+      100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container popup">
+    <header>
+      <img src="/static/logo.png" alt="RBVRR Logo" class="logo">
+    </header>
+
+    <main class="card login-card">
+      <form action="/login" method="post" onsubmit="return validateLogin()">
+        <div class="form-row">
+          <label>Username</label>
+          <input type="text" name="username" id="username" required>
+        </div>
+        <div class="form-row">
+          <label>Password</label>
+          <input type="password" name="password" id="password" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn primary">Login</button>
+          <a class="btn" href="/signup">Signup</a>
+          <a class="btn" href="/forgot">Forgot Password</a>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <!-- Floating bubbles script -->
+  <script>
+    const numBubbles = 15;
+    for (let i = 0; i < numBubbles; i++) {
+      const bubble = document.createElement('div');
+      bubble.classList.add('bubble');
+      bubble.style.width = bubble.style.height = Math.random() * 50 + 20 + 'px';
+      bubble.style.left = Math.random() * 100 + 'vw';
+      bubble.style.animationDuration = (Math.random() * 5 + 5) + 's';
+      bubble.style.animationDelay = Math.random() * 5 + 's';
+      document.body.appendChild(bubble);
+    }
+  </script>
+</body>
+</html>

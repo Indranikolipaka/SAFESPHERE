@@ -724,3 +724,8 @@ def reset_password(token):
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
+
+@app.route("/health")
+def health():
+    return "OK", 200
+

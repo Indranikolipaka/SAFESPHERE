@@ -41,8 +41,22 @@
   <canvas id="confetti-canvas"></canvas>
   <div class="container">
     <header>
-      <h2>Hello {{ student['name'] }}, ID: {{ student['unique_code'] }}</h2>
-      <a href="/logout" class="btn">Logout</a>
+      <div style="display:flex; align-items:center; gap:18px; width:100%; justify-content:space-between;">
+        <div>
+          <h2>Hello {{ student['name'] }}, ID: {{ student['unique_code'] }}</h2>
+        </div>
+        <div style="text-align:right">
+          {% if reset_token %}
+            <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">Token: {{ reset_token }}</div>
+            <div class="muted" style="display:block; font-size:0.85rem">Expires: {{ reset_expires }}</div>
+          {% else %}
+            <form method="post" action="/generate_token" style="display:inline">
+              <button class="btn" type="submit">Generate Reset Token</button>
+            </form>
+          {% endif %}
+          <div style="margin-top:6px"><a href="/logout" class="btn">Logout</a></div>
+        </div>
+      </div>
     </header>
     <main>
       <section class="bunny-panel card">

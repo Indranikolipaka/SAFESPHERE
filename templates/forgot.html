@@ -4,17 +4,70 @@
   <meta charset="utf-8">
   <title>Forgot Password - SafeSphere</title>
   <link rel="stylesheet" href="/static/css/common.css">
+  <style>
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196F3;
+      padding: 12px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+      color: #1565c0;
+      font-size: 0.9rem;
+    }
+    .muted { color: #666; font-size: 0.85rem; }
+    hr { margin: 20px 0; border: none; border-top: 1px solid #ddd; }
+  </style>
 </head>
 <body>
   <div class="container">
-    <header><h2>Forgot Password</h2></header>
+    <header>
+      <h2>Reset Your Password</h2>
+      <a href="/" class="btn">Back to Login</a>
+    </header>
     <main class="card">
+      <div class="info-box">
+        📧 Enter your username or email address below. We'll provide you with a reset token to securely change your password.
+      </div>
+      
       <form method="post" action="/forgot">
-        <div class="form-row"><label>Username or Email</label><input type="text" name="identifier" required></div>
-        <div class="form-actions"><button class="btn primary" type="submit">Send Reset Link</button></div>
+        <div class="form-row">
+          <label>Username or Email Address</label>
+          <input type="text" name="identifier" required placeholder="Enter your username or email">
+        </div>
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Get Reset Token</button>
+        </div>
       </form>
-      <p class="muted">(This is a template — integrate email reset in production.)</p>
+      
+      <hr>
+      
+      <h3 style="margin-top: 20px; font-size: 1rem;">Already have a reset token?</h3>
+      <p class="muted">If you've already received a reset token, use the link in your confirmation message or click below:</p>
+      
+      <form method="get" action="#" onsubmit="handleTokenInput(event)">
+        <div class="form-row">
+          <label>Reset Token</label>
+          <input type="text" id="tokenInput" name="token" placeholder="Paste your reset token here" style="font-family: monospace; font-size: 0.9rem;">
+        </div>
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Continue with Token</button>
+        </div>
+      </form>
+      
+      <p class="muted" style="margin-top: 16px;">Reset tokens are valid for 24 hours. If your token expires, request a new one above.</p>
     </main>
   </div>
+  
+  <script>
+    function handleTokenInput(event) {
+      event.preventDefault();
+      const token = document.getElementById('tokenInput').value.trim();
+      if (!token) {
+        alert('Please enter your reset token');
+        return;
+      }
+      window.location.href = '/reset/' + encodeURIComponent(token);
+    }
+  </script>
 </body>
 </html>

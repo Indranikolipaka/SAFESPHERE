@@ -19,6 +19,10 @@
       <p>Only principal or teachers can create accounts per portal rules.</p>
     </header>
     <main class="card">
+      <div style="background: #fff3cd; border-left: 4px solid #ff9800; padding: 14px; margin-bottom: 20px; border-radius: 4px; color: #e65100;">
+        <strong>🔒 Safety Notice:</strong><br>
+        Your account details will be forwarded to the faculty for verification and approval. This is mandatory for your account security and safety. Your account will be activated only after faculty review and approval. This process typically takes 24-48 hours.
+      </div>
       <form action="/signup" method="post" onsubmit="return validateSignup()">
         <input type="hidden" id="create_for" name="create_for" value="student">
         <div class="form-row">
@@ -47,11 +51,13 @@
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn primary">Create</button>
-          <button type="button" class="btn" onclick="setCreateFor('student')">Create Student</button>
-          <button type="button" class="btn" onclick="setCreateFor('teacher')">Create Teacher</button>
+          <button type="submit" class="btn primary">Create Account</button>
+          <a href="/" class="btn">Back to Login</a>
         </div>
       </form>
+      <p class="muted" style="margin-top: 16px; text-align: center;">
+        By signing up, you agree to have your details reviewed by faculty members for security purposes.
+      </p>
     </main>
   </div>
 </body>

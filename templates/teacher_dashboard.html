@@ -19,11 +19,25 @@
 <body class="teacher-bg">
   <div class="container">
     <header>
-      <h2>Welcome {{ teacher['name'] }}, ID: {{ teacher['teacher_code'] }}</h2>
-      <nav>
-        <a href="/change_password" class="btn">Change Password</a>
-        <a href="/logout" class="btn">Logout</a>
-      </nav>
+      <div style="display:flex; align-items:center; gap:18px; width:100%; justify-content:space-between;">
+        <div>
+          <h2>Welcome {{ teacher['name'] }}, ID: {{ teacher['teacher_code'] }}</h2>
+        </div>
+        <div style="text-align:right">
+          {% if reset_token %}
+            <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">Token: {{ reset_token }}</div>
+            <div class="muted" style="display:block; font-size:0.85rem">Expires: {{ reset_expires }}</div>
+          {% else %}
+            <form method="post" action="/generate_token" style="display:inline">
+              <button class="btn" type="submit">Generate Reset Token</button>
+            </form>
+          {% endif %}
+          <nav style="margin-top:6px">
+            <a href="/change_password" class="btn">Change Password</a>
+            <a href="/logout" class="btn">Logout</a>
+          </nav>
+        </div>
+      </div>
     </header>
     <main>
       <section class="card">

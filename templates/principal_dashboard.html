@@ -5,16 +5,58 @@
   <title>Principal Dashboard - SafeSphere</title>
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/principal.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body.principal-bg {
       background: linear-gradient(to bottom right, #ffe6f2, #fff0f5);
       position: relative;
-      overflow-y: auto; /* make dashboard scrollable */
-      min-height: 100vh;
-      padding: 20px;
+      overflow-x: hidden;
+      font-family: Arial, sans-serif;
     }
 
+    main {
+      padding: 20px;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f7f7f7;
+    }
+
+    .btn.danger {
+      background-color: #ef5350;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn.danger:hover {
+      background-color: #d32f2f;
+    }
+
+    /* Floating petals */
     .petal {
       position: absolute;
       width: 20px;
@@ -30,105 +72,80 @@
       100% { transform: translateY(-50px) scale(1); opacity: 0; }
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
   </style>
 </head>
 <body class="principal-bg">
   <div class="container">
-    <header>
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <h2>Hello Principal of RBVRR Womens College</h2>
-        <div style="text-align:right">
-          {% if reset_token %}
-            <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">
-              Token: {{ reset_token }}
-            </div>
-            <div class="muted" style="font-size:0.85rem">Expires: {{ reset_expires }}</div>
-          {% else %}
-            <form method="post" action="/generate_token" style="display:inline">
-              <button class="btn" type="submit">Generate Reset Token</button>
-            </form>
-          {% endif %}
-          <nav style="margin-top:6px">
-            <a href="/change_password" class="btn">Change Password</a>
-            <a href="/logout" class="btn">Logout</a>
-          </nav>
-        </div>
+    <header style="display:flex; align-items:center; justify-content:space-between; padding:10px 20px;">
+      <h2>Hello Principal of RBVRR Womens College</h2>
+      <div style="text-align:right;">
+        {% if reset_token %}
+          <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">
+            Token: {{ reset_token }}
+          </div>
+          <div class="muted" style="display:block; font-size:0.85rem">Expires: {{ reset_expires }}</div>
+        {% else %}
+          <form method="post" action="/generate_token" style="display:inline">
+            <button class="btn" type="submit">Generate Reset Token</button>
+          </form>
+        {% endif %}
+        <nav style="margin-top:6px;">
+          <a href="/change_password" class="btn">Change Password</a>
+          <a href="/logout" class="btn">Logout</a>
+        </nav>
       </div>
     </header>
 
     <main>
+
       <!-- Teachers Table -->
       <section class="card">
         <h3>All Teachers</h3>
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Teacher ID</th>
               <th>Name</th>
               <th>Accepted Complaints</th>
               <th>Rejected Complaints</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-          {% for t in teachers %}
+            {% for t in teachers %}
             <tr>
-              <td>{{ t['id'] }}</td>
+              <td>{{ t['teacher_code'] }}</td>
               <td>{{ t['name'] }}</td>
               <td>{{ t['performance_accepted'] or 0 }}</td>
               <td>{{ t['performance_rejected'] or 0 }}</td>
-              <td>
-                <form method="post" action="/delete_teacher"
-                      onsubmit="return confirm(`Delete teacher {{ t['name'] }}?`);" style="display:inline;"
-
-                  <input type="hidden" name="teacher_id" value="{{ t['id'] }}">
-                  <button type="submit" class="btn danger">Delete</button>
-                </form>
-              </td>
             </tr>
-          {% endfor %}
+            {% endfor %}
           </tbody>
         </table>
       </section>
 
-      <!-- Forwarded Complaints -->
+      <!-- Complaints Forwarded by Teachers -->
       <section class="card">
         <h3>Complaints Forwarded by Teachers</h3>
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Complaint ID</th>
+              <th>Title</th>
               <th>Teacher</th>
-              <th>Category</th>
-              <th>Description</th>
               <th>Status</th>
               <th>Forwarded At</th>
             </tr>
           </thead>
           <tbody>
-          {% for c in forwarded_complaints %}
+            {% for c in forwarded_complaints %}
             <tr>
               <td>{{ c['id'] }}</td>
+              <td>{{ c['title'] }}</td>
               <td>{{ c['teacher_name'] }}</td>
-              <td>{{ c['category'] }}</td>
-              <td>{{ c['description'] }}</td>
               <td>{{ c['status'] }}</td>
               <td>{{ c['forwarded_at'] }}</td>
             </tr>
-          {% endfor %}
+            {% endfor %}
           </tbody>
         </table>
       </section>
@@ -139,28 +156,28 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Complaint ID</th>
               <th>Student Name</th>
-              <th>Complaint</th>
-              <th>Resolved?</th>
+              <th>Teacher</th>
+              <th>Review (Problem Solved?)</th>
               <th>Reviewed At</th>
             </tr>
           </thead>
           <tbody>
-          {% for r in student_reviews %}
+            {% for r in student_reviews %}
             <tr>
-              <td>{{ r['id'] }}</td>
+              <td>{{ r['complaint_id'] }}</td>
               <td>{{ r['student_name'] }}</td>
-              <td>{{ r['category'] }} - {{ r['description'] }}</td>
-              <td>{{ r['solved'] }}</td>
+              <td>{{ r['teacher_name'] }}</td>
+              <td>{{ r['review'] }}</td>
               <td>{{ r['reviewed_at'] }}</td>
             </tr>
-          {% endfor %}
+            {% endfor %}
           </tbody>
         </table>
       </section>
 
-      <!-- Create Teacher -->
+      <!-- Create Teacher Account -->
       <section class="card">
         <h3>Create Teacher Account</h3>
         <form method="post" action="/create_teacher" class="small-form">
@@ -183,6 +200,7 @@
         </form>
         <p class="muted">Teachers can change their password after first login.</p>
       </section>
+
     </main>
   </div>
 

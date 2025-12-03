@@ -115,6 +115,29 @@
       50% { opacity: 0.7; }
       100% { transform: translateY(-10vh) scale(1); opacity: 0; }
     }
+
+    /* Center everything in the container */
+.container {
+  display: flex;
+  flex-direction: column;   /* logo on top, login below */
+  justify-content: center;
+  align-items: center;
+  height: 100vh;            /* full screen center */
+}
+
+/* Make the logo bigger */
+.logo {
+  width: 600px;   /* adjust as you want */
+  max-width: 90%;
+  height: auto;
+}
+
+/* Center the login card */
+.login-card {
+  margin-top: 20px;
+  width: 400px;   /* good size for form */
+}
+
   </style>
 </head>
 

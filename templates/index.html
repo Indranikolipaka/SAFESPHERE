@@ -1,74 +1,77 @@
 ﻿<!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RBVRR Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <title>RBVRR Login</title> 
   
   <!-- Styles -->
-  <style>
+  <style> 
     /* Body & background */
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-      background: #f0f8ff; /* light playful background */
-      position: relative;
+    body { 
+      margin: 0; 
+      font-family: Arial, sans-serif; 
+      overflow: hidden; 
+      background: #f0f8ff;
+      position: relative; 
     }
 
     /* Splash Screen */
-#splash-card {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  background: #000;
-  display: flex;
-  justify-content: center;   /* center horizontally */
-  align-items: center;       /* center vertically */
-  z-index: 9999;
-  overflow: hidden;
-}
-
-
-.splash-video {
-  width: 350px;          /* adjust size as you want */
-  height: auto;
-  object-fit: contain;   /* shows full video */
-  animation: fadeSplash 3s forwards;
-  z-index: 99999;
-}
-
-
-@keyframes fadeSplash {
-  0% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-    /* Container for login card */
-    .container {
-      display: none; /* hidden initially */
-      position: relative;
-      z-index: 2; /* above bubbles */
-      min-height: 100vh;
+    #splash-card {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      overflow: hidden;
     }
 
-    /* Header logo */
+    .splash-video {
+      width: 350px;        /* smaller video */
+      height: auto;
+      object-fit: contain; /* no zoom */
+      animation: fadeSplash 3s forwards;
+      z-index: 99999;
+    }
+
+    @keyframes fadeSplash {
+      0% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+  </style>
+
+  <!-- External CSS -->
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/login.css">
+
+  <!-- JS -->
+  <script src="/static/js/main.js" defer></script>
+
+  <style>
+    /* Popup animation */
+    .popup { animation: pop 700ms ease; }
+
+    @keyframes pop { 
+      from { transform: scale(0.6); opacity:0 } 
+      to { transform: scale(1); opacity:1 } 
+    }
+
     header {
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 20px 0;
+      z-index: 2;
     }
 
     .logo {
       max-width: 800px;
-      height: auto;
       animation: logoBounce 1s ease forwards;
     }
 
@@ -78,12 +81,7 @@
       100% { transform: scale(1); opacity: 1; }
     }
 
-    /* Login card */
     .login-card {
-      background: #fff;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
       opacity: 0;
       transform: translateY(30px);
       animation: cardAppear 1s ease 1s forwards;
@@ -97,48 +95,12 @@
       }
     }
 
-    .form-row {
-      margin-bottom: 15px;
-    }
-
-    .form-row label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-
-    .form-row input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      margin-top: 20px;
-    }
-
-    .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: transform 0.2s ease, background-color 0.3s ease;
-      background-color: #2196f3;
-      color: #fff;
-      text-decoration: none;
-    }
-
     .btn:hover {
       transform: scale(1.05);
       background-color: #4caf50;
+      color: #fff;
     }
 
-    /* Floating bubbles */
     .bubble {
       position: absolute;
       border-radius: 50%;
@@ -155,19 +117,17 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- Splash Screen -->
-<div id="splash-card">
-  <video class="splash-video" autoplay muted playsinline>
+  <div id="splash-card">
+    <video class="splash-video" autoplay muted playsinline>
       <source src="{{ url_for('static', filename='splash.mp4') }}" type="video/mp4">
+    </video>
+  </div>
 
-  </video>
-</div>
-
-
-  <!-- Main container -->
-  <div class="container">
+  <div class="container popup">
     <header>
       <img src="/static/logo.png" alt="RBVRR Logo" class="logo">
     </header>
@@ -183,16 +143,15 @@
           <input type="password" name="password" id="password" required>
         </div>
         <div class="form-actions">
-          <button type="submit" class="btn">Login</button>
+          <button type="submit" class="btn primary">Login</button>
           <a class="btn" href="/signup">Signup</a>
         </div>
       </form>
     </main>
   </div>
 
-  <!-- Scripts -->
+  <!-- Floating bubbles script -->
   <script>
-    // Floating bubbles
     const numBubbles = 15;
     for (let i = 0; i < numBubbles; i++) {
       const bubble = document.createElement('div');
@@ -204,25 +163,13 @@
       document.body.appendChild(bubble);
     }
 
-    // Splash screen logic
+    // Splash logic
     window.addEventListener('load', () => {
-  setTimeout(() => {
-    document.getElementById('splash-card').style.display = 'none';
-    document.querySelector('.container').style.display = 'flex';
-  }, 3000);  // match to your video duration
-});
-
-
-    // Example login validation
-    function validateLogin() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-      if (!username || !password) {
-        alert('Please enter username and password');
-        return false;
-      }
-      return true;
-    }
+      setTimeout(() => {
+        document.getElementById('splash-card').style.display = 'none';
+        document.querySelector('.container').style.display = 'flex';
+      }, 3000);
+    });
   </script>
 
 </body>

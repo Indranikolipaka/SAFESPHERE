@@ -184,14 +184,16 @@
             <tbody>
                 {% for s in my_students %}
                 <tr>
-                    <td>{{ s.name }}</td>
-                    <td>{{ s.unique_code }}</td>
-                    <td>{{ s.roll_no if s.roll_no else "-" }}</td>
-                    <td>{{ s.created_at }}</td>
+                    <td>{{ s[1] }}</td>
+                    <td>{{ s[2] }}</td>
+                    <td>{{ s[3] if s[3] else "-" }}</td>
+                    <td>{{ s[4] }}</td>
                     <td>
-                        <form method="POST" action="/delete_student" onsubmit="return confirm('Delete this student?');">
-                            <input type="hidden" name="student_id" value="{{ s.id }}">
-                            <button type="submit" style="background:#e74c3c;color:white;border:none;padding:6px 10px;border-radius:5px;cursor:pointer;">
+                        <form method="POST" action="/delete_student"
+                              onsubmit="return confirm('Delete this student?');">
+                            <input type="hidden" name="student_id" value="{{ s[0] }}">
+                            <button type="submit"
+                                    style="background:#e74c3c;color:white;border:none;padding:6px 10px;border-radius:5px;cursor:pointer;">
                                 Delete
                             </button>
                         </form>

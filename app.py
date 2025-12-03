@@ -371,55 +371,59 @@ def principal_dashboard():
 
     conn = get_db()
 
-    # --- Teachers with complaint stats ---
-    teachers = conn.execute('''
-        SELECT t.id, t.name,
-               IFNULL(SUM(CASE WHEN c.status='Accepted' THEN 1 ELSE 0 END),0) AS accepted,
-               IFNULL(SUM(CASE WHEN c.status='Rejected' THEN 1 ELSE 0 END),0) AS rejected
-        FROM teachers t
-        LEFT JOIN complaints c ON c.teacher_id = t.id
-        GROUP BY t.id
-        ORDER BY t.name ASC
-    ''').fetchall()
+    try:
+        # 1️⃣ Get all teachers with accepted/rejected complaints
+        teachers = conn.execute('''
+            SELECT t.id, t.name,
+                   COALESCE(tp.performance_accepted, 0) AS performance_accepted,
+                   COALESCE(tp.performance_rejected, 0) AS performance_rejected
+            FROM teachers t
+            LEFT JOIN teacher_performance tp ON t.id = tp.teacher_id
+            ORDER BY t.name ASC
+        ''').fetchall()
 
-    # --- Complaints forwarded by teachers ---
-    forwarded_complaints = conn.execute('''
-        SELECT c.id, c.description AS complaint_text, t.name AS teacher_name,
-               c.status, c.created_at AS forwarded_at
-        FROM complaints c
-        JOIN teachers t ON t.id = c.teacher_id
-        WHERE c.teacher_id IS NOT NULL
-        ORDER BY c.created_at DESC
-    ''').fetchall()
+        # 2️⃣ Complaints forwarded by teachers
+        forwarded_complaints = conn.execute('''
+            SELECT c.id, c.category, c.description, c.status, c.created_at AS forwarded_at,
+                   t.name AS teacher_name
+            FROM complaints c
+            JOIN teachers t ON c.teacher_id = t.id
+            ORDER BY c.created_at DESC
+        ''').fetchall()
 
-    # --- Student reviews ---
-    student_reviews = conn.execute('''
-        SELECT s.id AS student_id, s.name AS student_name, c.id AS complaint_id,
-               r.review, r.reviewed_at
-        FROM reviews r
-        JOIN complaints c ON c.id = r.complaint_id
-        JOIN students s ON s.id = c.student_id
-        ORDER BY r.reviewed_at DESC
-    ''').fetchall()
+        # 3️⃣ Student reviews (assuming table `student_reviews` exists)
+        student_reviews = conn.execute('''
+            SELECT sr.id, s.name AS student_name, c.category, c.description,
+                   sr.solved, sr.reviewed_at
+            FROM student_reviews sr
+            JOIN students s ON sr.student_id = s.id
+            JOIN complaints c ON sr.complaint_id = c.id
+            ORDER BY sr.reviewed_at DESC
+        ''').fetchall()
 
-    # --- Reset token for principal ---
-    token_row = conn.execute('''
-        SELECT * FROM reset_tokens
-        WHERE user_id=? AND used=0 AND expires_at>datetime("now")
-        ORDER BY created_at DESC LIMIT 1
-    ''', (session['user_id'],)).fetchone()
+        # 4️⃣ Principal reset token (if any)
+        token_row = conn.execute('''
+            SELECT * FROM reset_tokens
+            WHERE user_id = ? AND used = 0 AND expires_at > datetime('now')
+            ORDER BY created_at DESC
+            LIMIT 1
+        ''', (session['user_id'],)).fetchone()
 
-    token = token_row['token'] if token_row else None
-    token_expires = token_row['expires_at'] if token_row else None
+        reset_token = token_row['token'] if token_row else None
+        reset_expires = token_row['expires_at'] if token_row else None
 
-    conn.close()
+    finally:
+        conn.close()
 
-    return render_template('principal_dashboard.html',
-                           teachers=teachers,
-                           forwarded_complaints=forwarded_complaints,
-                           student_reviews=student_reviews,
-                           reset_token=token,
-                           reset_expires=token_expires)
+    return render_template(
+        'principal_dashboard.html',
+        teachers=teachers,
+        forwarded_complaints=forwarded_complaints,
+        student_reviews=student_reviews,
+        reset_token=reset_token,
+        reset_expires=reset_expires
+    )
+
 
 
 

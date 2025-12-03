@@ -743,6 +743,43 @@ def api_teacher_charts(teacher_id):
     conn.close()
     return jsonify({'accepted': accepted, 'rejected': rejected})
 
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # Optional, allows dict-like access
+    return conn
+
+
+@app.route('/teacher/complaint/<int:id>/<action>', methods=['POST'])
+def teacher_handle_complaint(id, action):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    complaint = cur.execute("SELECT * FROM complaints WHERE id=?", (id,)).fetchone()
+    if not complaint:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Complaint not found'})
+    
+    try:
+        if action == 'accept':
+            cur.execute("UPDATE complaints SET status='Accepted' WHERE id=?", (id,))
+        elif action == 'reject':
+            cur.execute("UPDATE complaints SET status='Rejected' WHERE id=?", (id,))
+        elif action == 'forward':
+            cur.execute("UPDATE complaints SET forwarded=1, status='Forwarded to Principal' WHERE id=?", (id,))
+        elif action == 'delete':
+            cur.execute("DELETE FROM complaints WHERE id=?", (id,))
+        else:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Invalid action'})
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)})
+
 # --- HEALTH CHECK ---
 @app.route("/health")
 def health():

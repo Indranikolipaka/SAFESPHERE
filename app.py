@@ -320,73 +320,84 @@ def student_dashboard():
 @app.route('/teacher_dashboard')
 @require_login
 def teacher_dashboard():
+    # Access control
     if session.get('role') != 'teacher':
         flash('Access denied', 'danger')
         return redirect(url_for('index'))
-    
+
     conn = get_db()
 
-    # Fetch teacher profile using ref_id from users table
-    teacher = conn.execute('''
+    # Fetch teacher profile (correct)
+    teacher = conn.execute(
+        '''
         SELECT * FROM teachers 
         WHERE id = (SELECT ref_id FROM users WHERE id = ?)
-    ''', (session['user_id'],)).fetchone()
+        ''',
+        (session['user_id'],)
+    ).fetchone()
 
     if not teacher:
         flash('Teacher profile not found', 'danger')
         conn.close()
         return redirect(url_for('logout'))
-    
+
+    teacher_id = teacher['id']
+
     # Fetch complaints assigned to this teacher
-    complaints = conn.execute('''
-        SELECT c.*, s.name AS student_name 
+    complaints = conn.execute(
+        '''
+        SELECT c.*, s.name AS student_name
         FROM complaints c
         JOIN students s ON c.student_id = s.id
         WHERE c.teacher_id = ?
         ORDER BY c.created_at DESC
-    ''', (teacher['id'],)).fetchall()
-    
-    accepted = sum(1 for c in complaints if c['status'] == 'Accepted')
-    rejected = sum(1 for c in complaints if c['status'] == 'Rejected')
+        ''',
+        (teacher_id,)
+    ).fetchall()
 
-    # FIXED: Correct pending applicants lookup
-    # users.ref_id points to students.id
-    applicants = conn.execute('''
-        SELECT 
-            u.id AS user_id,
-            u.username,
-            u.email,
-            s.name,
-            s.unique_code
+    # Complaint statistics
+    accepted = sum(c['status'] == 'Accepted' for c in complaints)
+    rejected = sum(c['status'] == 'Rejected' for c in complaints)
+
+    # FIXED: pending student applicants query
+    applicants = conn.execute(
+        '''
+        SELECT u.id AS user_id, u.username, u.email, st.name, st.unique_code
         FROM users u
-        JOIN students s ON u.ref_id = s.id
+        JOIN students st ON u.ref_id = st.id        -- FIXED JOIN
         WHERE u.approved = 0 AND u.role = 'student'
-    ''').fetchall()
+        '''
+    ).fetchall()
 
     # Students created by this teacher
-    my_students = conn.execute('''
-        SELECT *
-        FROM students
+    my_students = conn.execute(
+        '''
+        SELECT * FROM students
         WHERE mentor_id = ?
         ORDER BY created_at DESC
-    ''', (teacher['id'],)).fetchall()
+        ''',
+        (teacher_id,)
+    ).fetchall()
 
-    # Latest valid reset token
-    token_row = conn.execute('''
-        SELECT * 
-        FROM reset_tokens 
-        WHERE user_id = ? 
-        AND used = 0 
+    # Reset token for teacher (if exists)
+    token_row = conn.execute(
+        '''
+        SELECT * FROM reset_tokens
+        WHERE user_id = ?
+        AND used = 0
         AND expires_at > datetime("now")
-        ORDER BY created_at DESC 
+        ORDER BY created_at DESC
         LIMIT 1
-    ''', (session['user_id'],)).fetchone()
+        ''',
+        (session['user_id'],)
+    ).fetchone()
 
     token = token_row['token'] if token_row else None
     token_expires = token_row['expires_at'] if token_row else None
 
     conn.close()
 
+    # Render dashboard
     return render_template(
         'teacher_dashboard.html',
         teacher=teacher,
@@ -398,6 +409,7 @@ def teacher_dashboard():
         reset_token=token,
         reset_expires=token_expires
     )
+
 
 
 @app.route('/principal_dashboard')

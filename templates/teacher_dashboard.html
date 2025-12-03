@@ -94,27 +94,29 @@
     </div>
 
     <script>
-  // Get canvas element
-  const pieCanvas = document.getElementById('pieChart');
+    // Correct way to pass Python variables
+    const teacher = {
+        name: "{{ teacher_name }}",
+        email: "{{ teacher_email }}",
+        subjects: {{ subjects | tojson | safe }}
+    };
 
-  // Read values from data attributes
-  const accepted = Number(pieCanvas.dataset.accepted);
-  const rejected = Number(pieCanvas.dataset.rejected);
+    function populateDashboard() {
+        const infoDiv = document.getElementById('teacher-info');
+        infoDiv.innerHTML = `
+            <h2>${teacher.name}</h2>
+            <p>Email: ${teacher.email}</p>
+        `;
 
-  // Prepare chart data
-  const data = {
-    labels: ['Accepted', 'Rejected'],
-    datasets: [{
-      data: [accepted, rejected],
-      backgroundColor: ['#4caf50', '#f44336']
-    }]
-  };
+        const scheduleList = document.getElementById('schedule-list');
+        if (!teacher.subjects || teacher.subjects.length === 0) {
+            scheduleList.innerHTML = "<li>No subjects assigned.</li>";
+        } else {
+            scheduleList.innerHTML = teacher.subjects.map(sub => `<li>${sub}</li>`).join('');
+        }
+    }
 
-  // Render pie chart
-  new Chart(pieCanvas, {
-    type: 'pie',
-    data: data
-  });
+    document.addEventListener('DOMContentLoaded', populateDashboard);
 </script>
 
 </body>

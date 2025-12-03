@@ -7,11 +7,12 @@
     <link rel="stylesheet" href="/static/css/common.css">
     <link rel="stylesheet" href="/static/css/teacher.css">
     <style>
-        /* Sidebar */
         body {
             margin: 0;
             font-family: Arial, sans-serif;
         }
+
+        /* Sidebar */
         .sidebar {
             width: 220px;
             height: 100vh;
@@ -34,24 +35,6 @@
         .sidebar a:hover {
             background-color: #34495e;
         }
-
-        /* Main content */
-        .main {
-            margin-left: 220px;
-            padding: 20px;
-        }
-
-        .card {
-            background: #ecf0f1;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        #schedule-list li {
-            margin-bottom: 5px;
-        }
-
         .logout-btn {
             display: block;
             width: calc(100% - 40px);
@@ -68,6 +51,40 @@
         .logout-btn:hover {
             background-color: #c0392b;
         }
+
+        /* Main content */
+        .main {
+            margin-left: 220px;
+            padding: 20px;
+        }
+
+        .card {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        #subjects-list li {
+            margin-bottom: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            text-align: left;
+        }
+        table th {
+            background-color: #34495e;
+            color: white;
+        }
+        .status-accepted { color: green; font-weight: bold; }
+        .status-rejected { color: red; font-weight: bold; }
+        .status-pending { color: orange; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -81,43 +98,78 @@
     </div>
 
     <div class="main">
-        <div id="teacher-info" class="card">
-            <!-- Teacher info populated by JS -->
+        <!-- Teacher Info -->
+        <div class="card" id="teacher-info">
+            <h2>{{ teacher.name }}</h2>
+            <p>Email: {{ teacher.email }}</p>
+            {% if reset_token %}
+                <p>Reset Token: <strong>{{ reset_token }}</strong> (expires: {{ reset_expires }})</p>
+            {% endif %}
         </div>
 
+        <!-- Subjects -->
         <div class="card">
             <h3>Subjects</h3>
-            <ul id="schedule-list">
-                <!-- Subjects populated by JS -->
+            <ul id="subjects-list">
+                {% if subjects %}
+                    {% for sub in subjects %}
+                        <li>{{ sub }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>No subjects assigned.</li>
+                {% endif %}
             </ul>
+        </div>
+
+        <!-- Complaints -->
+        <div class="card">
+            <h3>Complaints Overview</h3>
+            <p>Accepted: {{ accepted }}</p>
+            <p>Rejected: {{ rejected }}</p>
+
+            {% if complaints %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in complaints %}
+                            <tr>
+                                <td>{{ c.student_name }}</td>
+                                <td>{{ c.category }}</td>
+                                <td>{{ c.description }}</td>
+                                <td class="status-{{ c.status | lower | replace(' ', '-') }}">{{ c.status }}</td>
+                                <td>
+                                    {% if c.status == 'Pending' %}
+                                        <form method="POST" action="/complaint/action" style="display:inline;">
+                                            <input type="hidden" name="complaint_id" value="{{ c.id }}">
+                                            <button type="submit" name="action" value="accept">Accept</button>
+                                            <button type="submit" name="action" value="reject">Reject</button>
+                                            <button type="submit" name="action" value="forward">Forward</button>
+                                        </form>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No complaints assigned.</p>
+            {% endif %}
         </div>
     </div>
 
     <script>
-    // Correct way to pass Python variables
-    const teacher = {
-        name: "{{ teacher_name }}",
-        email: "{{ teacher_email }}",
-        subjects: {{ subjects | tojson | safe }}
-    };
-
-    function populateDashboard() {
-        const infoDiv = document.getElementById('teacher-info');
-        infoDiv.innerHTML = `
-            <h2>${teacher.name}</h2>
-            <p>Email: ${teacher.email}</p>
-        `;
-
-        const scheduleList = document.getElementById('schedule-list');
-        if (!teacher.subjects || teacher.subjects.length === 0) {
-            scheduleList.innerHTML = "<li>No subjects assigned.</li>";
-        } else {
-            scheduleList.innerHTML = teacher.subjects.map(sub => `<li>${sub}</li>`).join('');
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', populateDashboard);
-</script>
-
+        // Optional: if you want JS to populate or manipulate data dynamically
+        // currently handled safely via Jinja
+    </script>
 </body>
 </html>

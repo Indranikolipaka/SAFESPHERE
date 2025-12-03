@@ -370,25 +370,59 @@ def principal_dashboard():
         return redirect(url_for('index'))
 
     conn = get_db()
-    conn.row_factory = sqlite3.Row  # important!
 
-    # Fetch teachers
-    teachers = conn.execute('SELECT * FROM teachers ORDER BY name ASC').fetchall()
+    # 1️⃣ Get all teachers with their accepted/rejected complaints
+    # Ensure 0 for teachers with no complaints
+    teachers = conn.execute('''
+        SELECT t.id, t.name, t.teacher_code,
+               IFNULL(SUM(CASE WHEN c.status='Accepted' THEN 1 ELSE 0 END),0) AS performance_accepted,
+               IFNULL(SUM(CASE WHEN c.status='Rejected' THEN 1 ELSE 0 END),0) AS performance_rejected
+        FROM teachers t
+        LEFT JOIN complaints c ON c.teacher_id = t.id
+        GROUP BY t.id
+        ORDER BY t.name ASC
+    ''').fetchall()
 
-    # Complaint status for pie chart
-    pc = conn.execute('SELECT status, COUNT(*) as c FROM complaints GROUP BY status').fetchall()
+    # 2️⃣ Complaints forwarded by teachers
+    forwarded_complaints = conn.execute('''
+        SELECT c.id, c.title, t.name AS teacher_name, c.status, c.forwarded_at
+        FROM complaints c
+        JOIN teachers t ON t.id = c.teacher_id
+        WHERE c.forwarded_by_teacher = 1
+        ORDER BY c.forwarded_at DESC
+    ''').fetchall()
 
-    # Fetch principal's latest reset token
-    token_row = conn.execute(
-        'SELECT * FROM reset_tokens WHERE user_id = ? AND used = 0 AND expires_at > datetime("now") ORDER BY created_at DESC LIMIT 1',
-        (session['user_id'],)
-    ).fetchone()
+    # 3️⃣ Student Reviews (whether problem solved or not)
+    student_reviews = conn.execute('''
+        SELECT c.id AS complaint_id, s.name AS student_name, t.name AS teacher_name,
+               r.review, r.reviewed_at
+        FROM reviews r
+        JOIN complaints c ON c.id = r.complaint_id
+        JOIN students s ON s.id = r.student_id
+        LEFT JOIN teachers t ON t.id = c.teacher_id
+        ORDER BY r.reviewed_at DESC
+    ''').fetchall()
+
+    # 4️⃣ Get reset token if any
+    token_row = conn.execute('''
+        SELECT * FROM reset_tokens
+        WHERE user_id = ? AND used = 0 AND expires_at > datetime('now')
+        ORDER BY created_at DESC LIMIT 1
+    ''', (session['user_id'],)).fetchone()
+
     token = token_row['token'] if token_row else None
     token_expires = token_row['expires_at'] if token_row else None
 
     conn.close()
-    return render_template('principal_dashboard.html', teachers=teachers, pc=pc, reset_token=token, reset_expires=token_expires)
 
+    return render_template(
+        'principal_dashboard.html',
+        teachers=teachers,
+        forwarded_complaints=forwarded_complaints,
+        student_reviews=student_reviews,
+        reset_token=token,
+        reset_expires=token_expires
+    )
 
 
 # --- COMPLAINTS ---

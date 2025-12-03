@@ -368,25 +368,32 @@ def principal_dashboard():
     if session.get('role') != 'principal':
         flash('Access denied', 'danger')
         return redirect(url_for('index'))
-    
+
     conn = get_db()
-    
+    conn.row_factory = sqlite3.Row  # <--- important
+
     # Get all teachers with performance metrics
     teachers = conn.execute('''
         SELECT * FROM teachers ORDER BY name ASC
     ''').fetchall()
-    
+
     # Complaint status pie chart data
     pc = conn.execute('''
         SELECT status, COUNT(*) as c FROM complaints GROUP BY status
     ''').fetchall()
+
+    token_row = conn.execute('''
+        SELECT * FROM reset_tokens 
+        WHERE user_id = ? AND used = 0 AND expires_at > datetime("now")
+        ORDER BY created_at DESC LIMIT 1
+    ''', (session['user_id'],)).fetchone()
     
-    token_row = conn.execute('SELECT * FROM reset_tokens WHERE user_id = ? AND used = 0 AND expires_at > datetime("now") ORDER BY created_at DESC LIMIT 1', (session['user_id'],)).fetchone()
     token = token_row['token'] if token_row else None
     token_expires = token_row['expires_at'] if token_row else None
     conn.close()
-    
+
     return render_template('principal_dashboard.html', teachers=teachers, pc=pc, reset_token=token, reset_expires=token_expires)
+
 
 # --- COMPLAINTS ---
 @app.route('/complaint/new', methods=['GET','POST'])

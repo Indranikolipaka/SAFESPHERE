@@ -706,18 +706,28 @@ def delete_student():
 def delete_teacher():
     if session.get('role') != 'principal':
         return redirect(url_for('index'))
-    
+
     teacher_id = request.form.get('teacher_id')
-    conn = get_db()
-    
-    conn.execute('DELETE FROM complaints WHERE teacher_id = ?', (teacher_id,))
-    conn.execute('DELETE FROM teachers WHERE id = ?', (teacher_id,))
-    conn.execute('DELETE FROM users WHERE ref_id = ?', (teacher_id,))
-    conn.commit()
-    conn.close()
-    
+    if not teacher_id:
+        flash('Teacher ID missing', 'error')
+        return redirect(url_for('principal_dashboard'))
+
+    try:
+        teacher_id = int(teacher_id)
+        conn = get_db()
+        conn.execute('DELETE FROM complaints WHERE teacher_id = ?', (teacher_id,))
+        conn.execute('DELETE FROM teachers WHERE id = ?', (teacher_id,))
+        conn.execute('DELETE FROM users WHERE ref_id = ?', (teacher_id,))
+        conn.commit()
+    except Exception as e:
+        print('Error deleting teacher:', e)
+        flash('Failed to delete teacher', 'error')
+    finally:
+        conn.close()
+
     flash('Teacher deleted', 'success')
     return redirect(url_for('principal_dashboard'))
+
 
 # --- STATIC UPLOADS ---
 @app.route('/uploads/<path:filename>')

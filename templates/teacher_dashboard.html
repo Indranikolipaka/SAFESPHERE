@@ -4,172 +4,194 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Dashboard - SafeSphere</title>
-    <link rel="stylesheet" href="/static/css/common.css">
-    <link rel="stylesheet" href="/static/css/teacher.css">
+
     <style>
         body {
             margin: 0;
+            background: #fbf8ef;
             font-family: Arial, sans-serif;
         }
 
-        /* Sidebar */
-        .sidebar {
-            width: 220px;
-            height: 100vh;
-            position: fixed;
-            background-color: #2c3e50;
-            color: white;
-            padding-top: 20px;
+        /* Top Bar */
+        .topbar {
+            background: #fdeeee;
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 18px;
+            border-bottom: 1px solid #ddd;
         }
-        .sidebar h2 {
-            text-align: center;
-            margin-bottom: 30px;
+        .topbar .right-buttons {
+            float: right;
         }
-        .sidebar a {
-            display: block;
-            padding: 10px 20px;
-            color: white;
-            text-decoration: none;
-            margin-bottom: 5px;
-        }
-        .sidebar a:hover {
-            background-color: #34495e;
-        }
-        .logout-btn {
-            display: block;
-            width: calc(100% - 40px);
-            margin: 20px auto 0 auto;
-            padding: 10px;
-            text-align: center;
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 5px;
+        .topbar button {
+            padding: 6px 12px;
+            margin-left: 8px;
             cursor: pointer;
-            text-decoration: none;
-        }
-        .logout-btn:hover {
-            background-color: #c0392b;
         }
 
-        /* Main content */
-        .main {
-            margin-left: 220px;
-            padding: 20px;
-        }
-
+        /* Card design */
         .card {
-            background: #ecf0f1;
+            background: white;
             padding: 20px;
+            margin: 20px auto;
+            width: 92%;
             border-radius: 8px;
-            margin-bottom: 20px;
+            box-shadow: 0px 0px 4px rgba(0,0,0,0.1);
         }
 
-        #subjects-list li {
-            margin-bottom: 5px;
+        /* Pie chart */
+        .chart-container {
+            width: 60%;
+            margin: 0 auto;
         }
 
+        /* Complaint items */
+        .complaint-box {
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dcdcdc;
+        }
+        .complaint-box button {
+            margin-right: 5px;
+            margin-top: 5px;
+        }
+
+        /* Student list */
         table {
             width: 100%;
             border-collapse: collapse;
         }
         table th, table td {
             padding: 10px;
-            border: 1px solid #bdc3c7;
             text-align: left;
         }
         table th {
-            background-color: #34495e;
-            color: white;
+            background: #f1f1f1;
         }
-        .status-accepted { color: green; font-weight: bold; }
-        .status-rejected { color: red; font-weight: bold; }
-        .status-pending { color: orange; font-weight: bold; }
+        table td button {
+            padding: 6px 10px;
+        }
+
+        /* Create Student */
+        input[type=text], input[type=password], input[type=email], input[type=number] {
+            padding: 7px;
+            width: 60%;
+            margin-bottom: 10px;
+            border: 1px solid #bbb;
+            border-radius: 5px;
+        }
+        .create-btn {
+            padding: 8px 15px;
+            margin-top: 10px;
+        }
     </style>
+
+    <!-- GOOGLE CHARTS -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+            ['Status', 'Count'],
+            ['Accepted', Number('{{ accepted }}')],
+            ['Rejected', Number('{{ rejected }}')]
+        ]);
+
+        var options = {
+            title: '',
+            colors: ['#4CAF50', '#E74C3C'],
+            legend: { position: 'top' },
+            chartArea: { width: '90%', height: '80%' }
+        };
+
+        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+        chart.draw(data, options);
+    }
+</script>
+
+
 </head>
 <body>
-    <div class="sidebar">
-        <h2>SafeSphere</h2>
-        <a href="#">Dashboard</a>
-        <a href="#">Attendance</a>
-        <a href="#">Assignments</a>
-        <a href="#">Messages</a>
-        <a href="/logout" class="logout-btn">Logout</a>
-    </div>
 
-    <div class="main">
-        <!-- Teacher Info -->
-        <div class="card" id="teacher-info">
-            <h2>{{ teacher.name }}</h2>
-            <p>Email: {{ teacher.email }}</p>
-            {% if reset_token %}
-                <p>Reset Token: <strong>{{ reset_token }}</strong> (expires: {{ reset_expires }})</p>
-            {% endif %}
-        </div>
-
-        <!-- Subjects -->
-        <div class="card">
-            <h3>Subjects</h3>
-            <ul id="subjects-list">
-                {% if subjects %}
-                    {% for sub in subjects %}
-                        <li>{{ sub }}</li>
-                    {% endfor %}
-                {% else %}
-                    <li>No subjects assigned.</li>
-                {% endif %}
-            </ul>
-        </div>
-
-        <!-- Complaints -->
-        <div class="card">
-            <h3>Complaints Overview</h3>
-            <p>Accepted: {{ accepted }}</p>
-            <p>Rejected: {{ rejected }}</p>
-
-            {% if complaints %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Category</th>
-                            <th>Description</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in complaints %}
-                            <tr>
-                                <td>{{ c.student_name }}</td>
-                                <td>{{ c.category }}</td>
-                                <td>{{ c.description }}</td>
-                                <td class="status-{{ c.status | lower | replace(' ', '-') }}">{{ c.status }}</td>
-                                <td>
-                                    {% if c.status == 'Pending' %}
-                                        <form method="POST" action="/complaint/action" style="display:inline;">
-                                            <input type="hidden" name="complaint_id" value="{{ c.id }}">
-                                            <button type="submit" name="action" value="accept">Accept</button>
-                                            <button type="submit" name="action" value="reject">Reject</button>
-                                            <button type="submit" name="action" value="forward">Forward</button>
-                                        </form>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No complaints assigned.</p>
-            {% endif %}
+    <!-- Top bar -->
+    <div class="topbar">
+        Welcome {{ teacher.name }}, ID: {{ teacher.code }}
+        <div class="right-buttons">
+            <button onclick="location.href='/change-password'">Change Password</button>
+            <button onclick="location.href='/logout'">Logout</button>
         </div>
     </div>
 
-    <script>
-        // Optional: if you want JS to populate or manipulate data dynamically
-        // currently handled safely via Jinja
-    </script>
+    <!-- Pie chart -->
+    <div class="card">
+        <div id="piechart" class="chart-container" style="height: 500px;"></div>
+    </div>
+
+    <!-- Complaints -->
+    <div class="card">
+        <h3>Complaints Assigned</h3>
+
+        {% for c in complaints %}
+        <div class="complaint-box">
+            <b>#{{ c.id }} from {{ c.student_name }} — {{ c.category }} — {{ c.status }}</b>
+            <p>{{ c.description }}</p>
+
+            <form method="POST" action="/complaint/action">
+                <input type="hidden" name="complaint_id" value="{{ c.id }}">
+
+                <button name="action" value="accept">Accept</button>
+                <button name="action" value="reject">Reject</button>
+                <button name="action" value="forward">Forward to Principal</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Create student -->
+    <div class="card">
+        <h3>Create Student Account</h3>
+
+        <form method="POST" action="/teacher/create-student">
+            <input type="text" name="fullname" placeholder="Full name" required><br>
+            <input type="text" name="username" placeholder="Username" required><br>
+            <input type="password" name="temp_password" placeholder="Temporary Password" required><br>
+            <input type="text" name="rollno" placeholder="Roll number (optional)"><br>
+            <input type="email" name="email" placeholder="Email (optional)"><br>
+            <input type="text" name="phone" placeholder="Phone (optional)"><br>
+
+            <button class="create-btn" type="submit">Create Student</button>
+        </form>
+    </div>
+
+    <!-- Student List -->
+    <div class="card">
+        <h3>My Students</h3>
+
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Roll No</th>
+                <th>Actions</th>
+            </tr>
+
+            {% for s in students %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.code }}</td>
+                <td>{{ s.rollno }}</td>
+                <td>
+                    <form method="POST" action="/teacher/delete-student">
+                        <input type="hidden" name="student_id" value="{{ s.id }}">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
 </body>
 </html>

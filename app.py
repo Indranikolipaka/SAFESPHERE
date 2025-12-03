@@ -370,19 +370,66 @@ def principal_dashboard():
 
     conn = get_db()
     try:
-        # Fetch all teachers
+        # Fetch all teachers with complaint counts
         teachers = conn.execute('''
-            SELECT id, name, email
-            FROM teachers
-            ORDER BY name ASC
+            SELECT t.id, t.name, t.email,
+                SUM(CASE WHEN c.status='resolved' THEN 1 ELSE 0 END) AS performance_accepted,
+                SUM(CASE WHEN c.status!='resolved' THEN 1 ELSE 0 END) AS performance_rejected
+            FROM teachers t
+            LEFT JOIN complaints c ON t.id = c.teacher_id
+            GROUP BY t.id
+            ORDER BY t.name ASC
         ''').fetchall()
+
+        # Count total resolved vs not resolved complaints for pie chart
+        complaint_counts = conn.execute('''
+            SELECT
+                SUM(CASE WHEN status='resolved' THEN 1 ELSE 0 END) AS resolved,
+                SUM(CASE WHEN status!='resolved' THEN 1 ELSE 0 END) AS not_resolved
+            FROM complaints
+        ''').fetchone()
+
+        chart_labels = ['Resolved', 'Not Resolved']
+        chart_counts = [complaint_counts['resolved'], complaint_counts['not_resolved']]
+
+        # Forwarded complaints
+        forwarded_complaints = conn.execute('''
+            SELECT c.id, t.name as teacher_name, c.category, c.description, c.status, c.forwarded_at
+            FROM complaints c
+            JOIN teachers t ON c.teacher_id = t.id
+            ORDER BY c.forwarded_at DESC
+        ''').fetchall()
+
+        # Student reviews
+        student_reviews = conn.execute('''
+            SELECT r.id, s.name as student_name, c.category, c.description, r.solved, r.reviewed_at
+            FROM student_reviews r
+            JOIN students s ON r.student_id = s.id
+            JOIN complaints c ON r.complaint_id = c.id
+            ORDER BY r.reviewed_at DESC
+        ''').fetchall()
+
     except Exception as e:
-        print("Error fetching teachers:", e)
+        print("Error in principal_dashboard:", e)
         teachers = []
+        forwarded_complaints = []
+        student_reviews = []
+        chart_labels = ['Resolved', 'Not Resolved']
+        chart_counts = [0, 0]
     finally:
         conn.close()
 
-    return render_template('principal_dashboard.html', teachers=teachers)
+    return render_template(
+        'principal_dashboard.html',
+        teachers=teachers,
+        forwarded_complaints=forwarded_complaints,
+        student_reviews=student_reviews,
+        chart_labels=chart_labels,
+        chart_counts=chart_counts
+    )
+
+
+
 
 
 

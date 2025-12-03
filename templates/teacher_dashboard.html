@@ -1,146 +1,104 @@
-﻿<!doctype html>
-<html>
+﻿<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Teacher Dashboard - SafeSphere</title>
-  <link rel="stylesheet" href="/static/css/common.css">
-  <link rel="stylesheet" href="/static/css/teacher.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    async function takeAction(id, action) {
-      let reason = '';
-      if (action === 'reject' || action === 'forward') reason = prompt('Provide reason:')||'';
-      const resp = await fetch('/complaint/action', {method:'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: `complaint_id=${id}&action=${action}&reason=${encodeURIComponent(reason)}`});
-      if (resp.ok) location.reload();
-      else alert('Action failed');
-    }
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - SafeSphere</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/teacher.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #004080;
+            color: #fff;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        main {
+            padding: 2rem;
+        }
+
+        #teacher-info {
+            margin-bottom: 2rem;
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        #schedule {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        #schedule ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #schedule ul li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
 </head>
-<body class="teacher-bg">
-  <div class="container">
+<body>
     <header>
-      <div style="display:flex; align-items:center; gap:18px; width:100%; justify-content:space-between;">
-        <div>
-          <h2>Welcome {{ teacher['name'] }}, ID: {{ teacher['teacher_code'] }}</h2>
-        </div>
-        <div style="text-align:right">
-          {% if reset_token %}
-            <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">Token: {{ reset_token }}</div>
-            <div class="muted" style="display:block; font-size:0.85rem">Expires: {{ reset_expires }}</div>
-          {% else %}
-            <form method="post" action="/generate_token" style="display:inline">
-              <button class="btn" type="submit">Generate Reset Token</button>
-            </form>
-          {% endif %}
-          <nav style="margin-top:6px">
-            <a href="/change_password" class="btn">Change Password</a>
-            <a href="/logout" class="btn">Logout</a>
-          </nav>
-        </div>
-      </div>
+        <h1>Teacher Dashboard</h1>
     </header>
+
     <main>
-      <section class="card">
-        <canvas id="pieChart" width="400" height="200"></canvas>
-      </section>
+        <!-- Teacher Info -->
+        <div id="teacher-info">
+            <!-- Populated by JS -->
+        </div>
 
-      <section class="card">
-        <h3>Complaints Assigned</h3>
-        <ul>
-        {% for c in complaints %}
-          <li>
-            <strong>#{{ c['id'] }}</strong> from {{ c['student_name'] }} — {{ c['category'] }} — {{ c['status'] }}
-            <div>{{ c['description'] }}</div>
-            <div>
-              <button onclick="takeAction({{ c['id'] }}, 'accept')">Accept</button>
-              <button onclick="takeAction({{ c['id'] }}, 'reject')">Reject</button>
-              <button onclick="takeAction({{ c['id'] }}, 'forward')">Forward to Principal</button>
-            </div>
-          </li>
-        {% else %}
-          <li>No complaints</li>
-        {% endfor %}
-        </ul>
-      </section>
-
-      <section class="card">
-        <h3>Create Student Account</h3>
-        <form method="post" action="/create_student" class="small-form">
-          <label for="fullname">Full name</label><br>
-          <input id="fullname" name="fullname" required><br>
-
-          <label for="username">Username</label><br>
-          <input id="username" name="username" required><br>
-
-          <label for="password">Temporary Password</label><br>
-          <input id="password" name="password" type="password" required minlength="8"><br>
-
-          <label for="roll_no">Roll number (optional)</label><br>
-          <input id="roll_no" name="roll_no"><br>
-
-          <label for="email">Email (optional)</label><br>
-          <input id="email" name="email" type="email"><br>
-
-          <label for="phone">Phone (optional)</label><br>
-          <input id="phone" name="phone"><br>
-
-          <button type="submit" class="btn">Create Student</button>
-        </form>
-      </section>
-      
-      <section class="card">
-        <h3>Account Applications</h3>
-        {% if applicants %}
-          <ul>
-          {% for a in applicants %}
-            <li>
-              <strong>{{ a['name'] }}</strong> ({{ a['username'] }}) — {{ a['email'] or 'no email' }} — Code: {{ a['unique_code'] }}
-              <form method="post" action="/approve_account" style="display:inline">
-                <input type="hidden" name="user_id" value="{{ a['user_id'] }}">
-                <button class="btn" type="submit">Approve</button>
-              </form>
-              <form method="post" action="/reject_account" style="display:inline" onsubmit="return confirm('Reject this application and remove data?');">
-                <input type="hidden" name="user_id" value="{{ a['user_id'] }}">
-                <button class="btn danger" type="submit">Reject</button>
-              </form>
-            </li>
-          {% endfor %}
-          </ul>
-        {% else %}
-          <div>No pending applications</div>
-        {% endif %}
-      </section>
-
-      <section class="card">
-        <h3>My Students</h3>
-        {% if my_students %}
-          <table>
-            <thead><tr><th>Name</th><th>Code</th><th>Roll No</th><th>Actions</th></tr></thead>
-            <tbody>
-            {% for s in my_students %}
-              <tr>
-                <td>{{ s['name'] }}</td>
-                <td>{{ s['unique_code'] }}</td>
-                <td>{{ s['roll_no'] or '-' }}</td>
-                <td>
-                  <form method="post" action="/delete_student" onsubmit="return confirm('Delete student {{ s["name"] }}?');" style="display:inline">
-                    <input type="hidden" name="student_id" value="{{ s['id'] }}">
-                    <button class="btn danger" type="submit">Delete</button>
-                  </form>
-                </td>
-              </tr>
-            {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <div>You currently have no students assigned.</div>
-        {% endif %}
-      </section>
+        <!-- Teacher Subjects / Schedule -->
+        <div id="schedule">
+            <h3>Subjects Assigned</h3>
+            <ul id="schedule-list">
+                <!-- Populated by JS -->
+            </ul>
+        </div>
     </main>
-  </div>
-  <script>
-    const data = {labels:['Accepted','Rejected'], datasets:[{data:[{{ accepted }}, {{ rejected }}], backgroundColor:['#4caf50','#f44336']}]};
-    new Chart(document.getElementById('pieChart'), {type:'pie', data});
-  </script>
+
+    <script>
+        // Safely pass Python variables to JS
+        const teacher = {
+            name: "{{ teacher_name }}",
+            email: "{{ teacher_email }}",
+            subjects: {{ subjects | tojson | safe }}
+        };
+
+        function populateDashboard() {
+            // Populate teacher info
+            const infoDiv = document.getElementById('teacher-info');
+            infoDiv.innerHTML = `
+                <h2>${teacher.name}</h2>
+                <p>Email: ${teacher.email}</p>
+            `;
+
+            // Populate subjects list
+            const scheduleList = document.getElementById('schedule-list');
+            if (!teacher.subjects || teacher.subjects.length === 0) {
+                scheduleList.innerHTML = "<li>No subjects assigned.</li>";
+            } else {
+                scheduleList.innerHTML = teacher.subjects
+                    .map(sub => `<li>${sub}</li>`)
+                    .join('');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', populateDashboard);
+    </script>
 </body>
 </html>

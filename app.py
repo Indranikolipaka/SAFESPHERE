@@ -325,14 +325,22 @@ def teacher_dashboard():
         return redirect(url_for('index'))
     
     conn = get_db()
-    teacher = conn.execute('SELECT * FROM teachers WHERE id = (SELECT ref_id FROM users WHERE id = ?)', (session['user_id'],)).fetchone()
+
+    # Fetch teacher profile using ref_id from users table
+    teacher = conn.execute('''
+        SELECT * FROM teachers 
+        WHERE id = (SELECT ref_id FROM users WHERE id = ?)
+    ''', (session['user_id'],)).fetchone()
+
     if not teacher:
         flash('Teacher profile not found', 'danger')
         conn.close()
         return redirect(url_for('logout'))
     
+    # Fetch complaints assigned to this teacher
     complaints = conn.execute('''
-        SELECT c.*, s.name as student_name FROM complaints c
+        SELECT c.*, s.name AS student_name 
+        FROM complaints c
         JOIN students s ON c.student_id = s.id
         WHERE c.teacher_id = ?
         ORDER BY c.created_at DESC
@@ -340,27 +348,57 @@ def teacher_dashboard():
     
     accepted = sum(1 for c in complaints if c['status'] == 'Accepted')
     rejected = sum(1 for c in complaints if c['status'] == 'Rejected')
-    
-    # Get pending account applications
+
+    # FIXED: Correct pending applicants lookup
+    # users.ref_id points to students.id
     applicants = conn.execute('''
-        SELECT u.id as user_id, u.username, u.email, st.name, st.unique_code
+        SELECT 
+            u.id AS user_id,
+            u.username,
+            u.email,
+            s.name,
+            s.unique_code
         FROM users u
-        JOIN students st ON u.id = st.id
+        JOIN students s ON u.ref_id = s.id
         WHERE u.approved = 0 AND u.role = 'student'
     ''').fetchall()
-    
-    # Get students this teacher created
+
+    # Students created by this teacher
     my_students = conn.execute('''
-        SELECT * FROM students WHERE mentor_id = ?
+        SELECT *
+        FROM students
+        WHERE mentor_id = ?
         ORDER BY created_at DESC
     ''', (teacher['id'],)).fetchall()
-    
-    token_row = conn.execute('SELECT * FROM reset_tokens WHERE user_id = ? AND used = 0 AND expires_at > datetime("now") ORDER BY created_at DESC LIMIT 1', (session['user_id'],)).fetchone()
+
+    # Latest valid reset token
+    token_row = conn.execute('''
+        SELECT * 
+        FROM reset_tokens 
+        WHERE user_id = ? 
+        AND used = 0 
+        AND expires_at > datetime("now")
+        ORDER BY created_at DESC 
+        LIMIT 1
+    ''', (session['user_id'],)).fetchone()
+
     token = token_row['token'] if token_row else None
     token_expires = token_row['expires_at'] if token_row else None
+
     conn.close()
-    
-    return render_template('teacher_dashboard.html', teacher=teacher, complaints=complaints, accepted=accepted, rejected=rejected, applicants=applicants, my_students=my_students, reset_token=token, reset_expires=token_expires)
+
+    return render_template(
+        'teacher_dashboard.html',
+        teacher=teacher,
+        complaints=complaints,
+        accepted=accepted,
+        rejected=rejected,
+        applicants=applicants,
+        my_students=my_students,
+        reset_token=token,
+        reset_expires=token_expires
+    )
+
 
 @app.route('/principal_dashboard')
 @require_login
@@ -589,41 +627,57 @@ def create_student():
     
     fullname = request.form.get('fullname')
     username = request.form.get('username')
-    password = request.form.get('password')
-    roll_no = request.form.get('roll_no')
+    password = request.form.get('temp_password')  # FIXED
+    roll_no = request.form.get('rollno')          # FIXED
     email = request.form.get('email')
     phone = request.form.get('phone')
     
     conn = get_db()
+
+    # Check existing username
     existing = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
     if existing:
         flash('Username already exists', 'danger')
         conn.close()
         return redirect(url_for('teacher_dashboard'))
-    
+
+    # Get teacher's student table ID
     teacher = conn.execute('SELECT ref_id FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     teacher_id = teacher['ref_id']
-    
+
     hashed = generate_password_hash(password)
+
     try:
         code = generate_student_code(conn)
+
+        # Create user login
         user_id = conn.execute(
-            'INSERT INTO users (role, username, password, email, phone, approved) VALUES (?, ?, ?, ?, ?, 1)',
+            '''INSERT INTO users (role, username, password, email, phone, approved)
+               VALUES (?, ?, ?, ?, ?, 1)''',
             ('student', username, hashed, email, phone)
         ).lastrowid
-        student_id = conn.execute('INSERT INTO students (name, unique_code, mentor_id, roll_no) VALUES (?, ?, ?, ?)',
-                    (fullname, code, teacher_id, roll_no)).lastrowid
+
+        # Create student profile
+        student_id = conn.execute(
+            'INSERT INTO students (name, unique_code, mentor_id, roll_no) VALUES (?, ?, ?, ?)',
+            (fullname, code, teacher_id, roll_no)
+        ).lastrowid
+
+        # Link user → student
         conn.execute('UPDATE users SET ref_id = ? WHERE id = ?', (student_id, user_id))
         conn.commit()
-        # Generate reset token for new student
+
+        # Create reset token
         token = generate_reset_token(conn, user_id)
         flash(f'✓ Student {fullname} created! Reset token: {token}', 'success')
+
     except Exception as e:
         conn.rollback()
         flash(f'Error: {str(e)}', 'danger')
+
     finally:
         conn.close()
-    
+
     return redirect(url_for('teacher_dashboard'))
 
 @app.route('/delete_student', methods=['POST'])
@@ -631,19 +685,36 @@ def create_student():
 def delete_student():
     if session.get('role') != 'teacher':
         return redirect(url_for('index'))
-    
+
     student_id = request.form.get('student_id')
+
     conn = get_db()
-    
+
+    # FIRST delete feedback → depends on complaints
+    complaint_ids = conn.execute(
+        'SELECT id FROM complaints WHERE student_id = ?', (student_id,)
+    ).fetchall()
+
+    complaint_ids = [c['id'] for c in complaint_ids]
+
+    for cid in complaint_ids:
+        conn.execute('DELETE FROM feedback WHERE complaint_id = ?', (cid,))
+
+    # THEN delete complaints
     conn.execute('DELETE FROM complaints WHERE student_id = ?', (student_id,))
-    conn.execute('DELETE FROM feedback WHERE complaint_id IN (SELECT id FROM complaints WHERE student_id = ?)', (student_id,))
+
+    # Delete student
     conn.execute('DELETE FROM students WHERE id = ?', (student_id,))
+
+    # Delete login account
     conn.execute('DELETE FROM users WHERE ref_id = ?', (student_id,))
+
     conn.commit()
     conn.close()
-    
+
     flash('Student deleted', 'success')
     return redirect(url_for('teacher_dashboard'))
+
 
 @app.route('/delete_teacher', methods=['POST'])
 @require_login

@@ -692,40 +692,23 @@ def create_student():
 
     return redirect(url_for('teacher_dashboard'))
 
-@app.route('/delete_student', methods=['POST'])
-@require_login
+@app.route("/delete_student", methods=["POST"])
 def delete_student():
-    if session.get('role') != 'teacher':
-        return redirect(url_for('index'))
+    student_id = request.form.get("student_id")
+    teacher_id = session.get("teacher_id")
 
-    student_id = request.form.get('student_id')
+    if not student_id or not teacher_id:
+        return redirect("/teacher_dashboard")
 
-    conn = get_db()
+    conn = sqlite3.connect("safesphere.db")
+    cur = conn.cursor()
 
-    # FIRST delete feedback → depends on complaints
-    complaint_ids = conn.execute(
-        'SELECT id FROM complaints WHERE student_id = ?', (student_id,)
-    ).fetchall()
-
-    complaint_ids = [c['id'] for c in complaint_ids]
-
-    for cid in complaint_ids:
-        conn.execute('DELETE FROM feedback WHERE complaint_id = ?', (cid,))
-
-    # THEN delete complaints
-    conn.execute('DELETE FROM complaints WHERE student_id = ?', (student_id,))
-
-    # Delete student
-    conn.execute('DELETE FROM students WHERE id = ?', (student_id,))
-
-    # Delete login account
-    conn.execute('DELETE FROM users WHERE ref_id = ?', (student_id,))
-
+    # Ensure a teacher can delete only his/her own student
+    cur.execute("DELETE FROM students WHERE id = ? AND mentor_id = ?", (student_id, teacher_id))
     conn.commit()
     conn.close()
 
-    flash('Student deleted', 'success')
-    return redirect(url_for('teacher_dashboard'))
+    return redirect("/teacher_dashboard")
 
 
 @app.route('/delete_teacher', methods=['POST'])

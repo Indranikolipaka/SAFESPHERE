@@ -178,6 +178,7 @@
                     <th>Unique Code</th>
                     <th>Roll No</th>
                     <th>Created</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -187,6 +188,14 @@
                     <td>{{ s.unique_code }}</td>
                     <td>{{ s.roll_no if s.roll_no else "-" }}</td>
                     <td>{{ s.created_at }}</td>
+                    <td>
+                        <form method="POST" action="/delete_student" onsubmit="return confirm('Delete this student?');">
+                            <input type="hidden" name="student_id" value="{{ s.id }}">
+                            <button type="submit" style="background:#e74c3c;color:white;border:none;padding:6px 10px;border-radius:5px;cursor:pointer;">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

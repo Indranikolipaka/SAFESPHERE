@@ -5,29 +5,26 @@
   <title>Principal Dashboard - SafeSphere</title>
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/principal.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Gradient background */
     body.principal-bg {
       background: linear-gradient(to bottom right, #ffe6f2, #fff0f5);
       position: relative;
-      overflow: hidden;
+      overflow-x: hidden;
+      font-family: Arial, sans-serif;
     }
 
-    /* Floating petals */
-    .petal {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background: url('https://cdn-icons-png.flaticon.com/512/616/616408.png') no-repeat center/contain;
-      pointer-events: none;
-      animation: floatUp linear infinite;
+    main {
+      padding: 20px;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
     }
 
-    @keyframes floatUp {
-      0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
-      50% { opacity: 1; }
-      100% { transform: translateY(-50px) scale(1); opacity: 0; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
     }
 
     table {
@@ -58,69 +55,122 @@
     .btn.danger:hover {
       background-color: #d32f2f;
     }
+
+    /* Floating petals */
+    .petal {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: url('https://cdn-icons-png.flaticon.com/512/616/616408.png') no-repeat center/contain;
+      pointer-events: none;
+      animation: floatUp linear infinite;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateY(-50px) scale(1); opacity: 0; }
+    }
+
   </style>
 </head>
 <body class="principal-bg">
   <div class="container">
-    <header>
-      <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-        <div>
-          <h2>Hello Principal of RBVRR Womens College</h2>
-        </div>
-        <div style="text-align:right;">
-          {% if reset_token %}
-            <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">
-              Token: {{ reset_token }}
-            </div>
-            <div class="muted" style="display:block; font-size:0.85rem">Expires: {{ reset_expires }}</div>
-          {% else %}
-            <form method="post" action="/generate_token" style="display:inline">
-              <button class="btn" type="submit">Generate Reset Token</button>
-            </form>
-          {% endif %}
-          <nav style="margin-top:6px;">
-            <a href="/change_password" class="btn">Change Password</a>
-            <a href="/logout" class="btn">Logout</a>
-          </nav>
-        </div>
+    <header style="display:flex; align-items:center; justify-content:space-between; padding:10px 20px;">
+      <h2>Hello Principal of RBVRR Womens College</h2>
+      <div style="text-align:right;">
+        {% if reset_token %}
+          <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">
+            Token: {{ reset_token }}
+          </div>
+          <div class="muted" style="display:block; font-size:0.85rem">Expires: {{ reset_expires }}</div>
+        {% else %}
+          <form method="post" action="/generate_token" style="display:inline">
+            <button class="btn" type="submit">Generate Reset Token</button>
+          </form>
+        {% endif %}
+        <nav style="margin-top:6px;">
+          <a href="/change_password" class="btn">Change Password</a>
+          <a href="/logout" class="btn">Logout</a>
+        </nav>
       </div>
     </header>
 
     <main>
-      <!-- Overall Complaint Status -->
-      <section class="card">
-        <h3>Overall Complaint Status</h3>
-        <canvas id="overallPie"></canvas>
-      </section>
 
-      <!-- Teachers Performance -->
+      <!-- Teachers Table -->
       <section class="card">
-        <h3>Teachers Performance</h3>
+        <h3>All Teachers</h3>
         <table>
           <thead>
             <tr>
-              <th>Teacher</th>
-              <th>Teacher Code</th>
-              <th>Total Classes</th>
-              <th>Rating</th>
-              <th>Actions</th>
+              <th>Teacher ID</th>
+              <th>Name</th>
+              <th>Accepted Complaints</th>
+              <th>Rejected Complaints</th>
             </tr>
           </thead>
           <tbody>
             {% for t in teachers %}
             <tr>
-              <td>{{ t['name'] }}</td>
               <td>{{ t['teacher_code'] }}</td>
-              <td>{{ t['total_classes'] }}</td>
-              <td>{{ t['rating'] }}</td>
-              <td>
-                <form method="post" action="/delete_teacher"
-                      onsubmit="return confirm('Delete teacher {{ t['name'] }}? This cannot be undone.');"
-                      style="display:inline">
-                  <input type="hidden" name="teacher_id" value="{{ t['id'] }}">
-                  <button type="submit" class="btn danger">Delete</button>
-                </form>
-              </td>
+              <td>{{ t['name'] }}</td>
+              <td>{{ t['performance_accepted'] or 0 }}</td>
+              <td>{{ t['performance_rejected'] or 0 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Complaints Forwarded by Teachers -->
+      <section class="card">
+        <h3>Complaints Forwarded by Teachers</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Complaint ID</th>
+              <th>Title</th>
+              <th>Teacher</th>
+              <th>Status</th>
+              <th>Forwarded At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in forwarded_complaints %}
+            <tr>
+              <td>{{ c['id'] }}</td>
+              <td>{{ c['title'] }}</td>
+              <td>{{ c['teacher_name'] }}</td>
+              <td>{{ c['status'] }}</td>
+              <td>{{ c['forwarded_at'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Student Reviews -->
+      <section class="card">
+        <h3>Student Reviews</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Complaint ID</th>
+              <th>Student Name</th>
+              <th>Teacher</th>
+              <th>Review (Problem Solved?)</th>
+              <th>Reviewed At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in student_reviews %}
+            <tr>
+              <td>{{ r['complaint_id'] }}</td>
+              <td>{{ r['student_name'] }}</td>
+              <td>{{ r['teacher_name'] }}</td>
+              <td>{{ r['review'] }}</td>
+              <td>{{ r['reviewed_at'] }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -150,20 +200,11 @@
         </form>
         <p class="muted">Teachers can change their password after first login.</p>
       </section>
+
     </main>
   </div>
 
   <script>
-    // Pie Chart for Overall Complaints
-    const pc = {
-      labels: [{% for row in pc %}'{{ row['status'] }}',{% endfor %}],
-      datasets: [{
-        data:[{% for row in pc %}{{ row['c'] }},{% endfor %}],
-        backgroundColor:['#42a5f5','#ffca28','#ef5350','#9ccc65']
-      }]
-    };
-    new Chart(document.getElementById('overallPie'), { type:'pie', data:pc });
-
     // Floating petals
     const petalCount = 15;
     for(let i=0; i<petalCount; i++){

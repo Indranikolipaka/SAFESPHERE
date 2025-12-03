@@ -152,8 +152,13 @@
     <form method="POST" action="/create_student">
         <input type="text" name="fullname" placeholder="Full name" required><br>
         <input type="text" name="username" placeholder="Username" required><br>
-        <input type="password" name="temp_password" placeholder="Temporary Password" required><br>
-        <input type="text" name="rollno" placeholder="Roll number (optional)"><br>
+
+        <!-- FIXED: use correct name="password" -->
+        <input type="password" name="password" placeholder="Temporary Password" required><br>
+
+        <!-- FIXED: correct name="roll_no" -->
+        <input type="text" name="roll_no" placeholder="Roll number (optional)"><br>
+
         <input type="email" name="email" placeholder="Email (optional)"><br>
         <input type="text" name="phone" placeholder="Phone (optional)"><br>
 

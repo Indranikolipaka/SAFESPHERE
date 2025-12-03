@@ -371,42 +371,41 @@ def principal_dashboard():
 
     conn = get_db()
 
-    # 1️⃣ Get all teachers with their accepted/rejected complaints
-    # Ensure 0 for teachers with no complaints
+    # --- Teachers with complaint stats ---
     teachers = conn.execute('''
-        SELECT t.id, t.name, t.teacher_code,
-               IFNULL(SUM(CASE WHEN c.status='Accepted' THEN 1 ELSE 0 END),0) AS performance_accepted,
-               IFNULL(SUM(CASE WHEN c.status='Rejected' THEN 1 ELSE 0 END),0) AS performance_rejected
+        SELECT t.id, t.name,
+               IFNULL(SUM(CASE WHEN c.status='Accepted' THEN 1 ELSE 0 END),0) AS accepted,
+               IFNULL(SUM(CASE WHEN c.status='Rejected' THEN 1 ELSE 0 END),0) AS rejected
         FROM teachers t
         LEFT JOIN complaints c ON c.teacher_id = t.id
         GROUP BY t.id
         ORDER BY t.name ASC
     ''').fetchall()
 
-    # 2️⃣ Complaints forwarded by teachers
+    # --- Complaints forwarded by teachers ---
     forwarded_complaints = conn.execute('''
-        SELECT c.id, c.title, t.name AS teacher_name, c.status, c.forwarded_at
+        SELECT c.id, c.description AS complaint_text, t.name AS teacher_name,
+               c.status, c.created_at AS forwarded_at
         FROM complaints c
         JOIN teachers t ON t.id = c.teacher_id
-        WHERE c.forwarded_by_teacher = 1
-        ORDER BY c.forwarded_at DESC
+        WHERE c.teacher_id IS NOT NULL
+        ORDER BY c.created_at DESC
     ''').fetchall()
 
-    # 3️⃣ Student Reviews (whether problem solved or not)
+    # --- Student reviews ---
     student_reviews = conn.execute('''
-        SELECT c.id AS complaint_id, s.name AS student_name, t.name AS teacher_name,
+        SELECT s.id AS student_id, s.name AS student_name, c.id AS complaint_id,
                r.review, r.reviewed_at
         FROM reviews r
         JOIN complaints c ON c.id = r.complaint_id
-        JOIN students s ON s.id = r.student_id
-        LEFT JOIN teachers t ON t.id = c.teacher_id
+        JOIN students s ON s.id = c.student_id
         ORDER BY r.reviewed_at DESC
     ''').fetchall()
 
-    # 4️⃣ Get reset token if any
+    # --- Reset token for principal ---
     token_row = conn.execute('''
         SELECT * FROM reset_tokens
-        WHERE user_id = ? AND used = 0 AND expires_at > datetime('now')
+        WHERE user_id=? AND used=0 AND expires_at>datetime("now")
         ORDER BY created_at DESC LIMIT 1
     ''', (session['user_id'],)).fetchone()
 
@@ -415,14 +414,13 @@ def principal_dashboard():
 
     conn.close()
 
-    return render_template(
-        'principal_dashboard.html',
-        teachers=teachers,
-        forwarded_complaints=forwarded_complaints,
-        student_reviews=student_reviews,
-        reset_token=token,
-        reset_expires=token_expires
-    )
+    return render_template('principal_dashboard.html',
+                           teachers=teachers,
+                           forwarded_complaints=forwarded_complaints,
+                           student_reviews=student_reviews,
+                           reset_token=token,
+                           reset_expires=token_expires)
+
 
 
 # --- COMPLAINTS ---

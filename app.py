@@ -544,42 +544,66 @@ def reject_account():
 @require_login
 def create_teacher():
     if session.get('role') != 'principal':
+        flash('Access denied', 'danger')
         return redirect(url_for('index'))
-    
-    fullname = request.form.get('fullname')
-    username = request.form.get('username')
-    password = request.form.get('password')
-    email = request.form.get('email')
-    phone = request.form.get('phone')
-    
-    conn = get_db()
-    existing = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
-    if existing:
-        flash('Username already exists', 'danger')
-        conn.close()
+
+    # Get form data
+    fullname = request.form.get('fullname').strip()
+    username = request.form.get('username').strip()
+    password = request.form.get('password').strip()
+    email = request.form.get('email', '').strip()
+    phone = request.form.get('phone', '').strip()
+
+    if not fullname or not username or not password:
+        flash('Full name, username, and password are required.', 'danger')
         return redirect(url_for('principal_dashboard'))
-    
-    hashed = generate_password_hash(password)
+
+    conn = get_db()
+    conn.row_factory = sqlite3.Row  # Ensures consistent access
     try:
+        # Check if username exists
+        existing = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+        if existing:
+            flash(f'Username "{username}" already exists!', 'danger')
+            return redirect(url_for('principal_dashboard'))
+
+        # Hash the password
+        hashed = generate_password_hash(password)
+
+        # Generate teacher code
         teacher_count = conn.execute('SELECT COUNT(*) as c FROM teachers').fetchone()['c']
         teacher_code = f"RBVTCH{teacher_count+1:04d}"
+
+        # Insert into users table
         user_id = conn.execute(
             'INSERT INTO users (role, username, password, email, phone, approved) VALUES (?, ?, ?, ?, ?, 1)',
             ('teacher', username, hashed, email, phone)
         ).lastrowid
-        teacher_id = conn.execute('INSERT INTO teachers (name, teacher_code) VALUES (?, ?)', (fullname, teacher_code)).lastrowid
+
+        # Insert into teachers table
+        teacher_id = conn.execute(
+            'INSERT INTO teachers (name, teacher_code) VALUES (?, ?)',
+            (fullname, teacher_code)
+        ).lastrowid
+
+        # Link user to teacher
         conn.execute('UPDATE users SET ref_id = ? WHERE id = ?', (teacher_id, user_id))
+
+        # Commit changes
         conn.commit()
-        # Generate reset token for new teacher
+
+        # Generate reset token
         token = generate_reset_token(conn, user_id)
-        flash(f'✓ Teacher {fullname} created! Reset token: {token}', 'success')
+        flash(f'✓ Teacher "{fullname}" created successfully! Reset token: {token}', 'success')
+
     except Exception as e:
         conn.rollback()
-        flash(f'Error: {str(e)}', 'danger')
+        flash(f'Error creating teacher: {str(e)}', 'danger')
     finally:
         conn.close()
-    
+
     return redirect(url_for('principal_dashboard'))
+
 
 @app.route('/create_student', methods=['POST'])
 @require_login

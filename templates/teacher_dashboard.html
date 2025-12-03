@@ -165,29 +165,32 @@
 <div class="card">
     <h3>My Students</h3>
 
-    <table>
-        <tr>
-            <th>Name</th>
-            <th>Code</th>
-            <th>Roll No</th>
-            <th>Actions</th>
-        </tr>
-
-        {% for s in students %}
-        <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.unique_code }}</td>
-            <td>{{ s.roll_no }}</td>
-            <td>
-                <form method="POST" action="/delete_student">
-                    <input type="hidden" name="student_id" value="{{ s.id }}">
-                    <button type="submit">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+    {% if my_students %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Unique Code</th>
+                    <th>Roll No</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in my_students %}
+                <tr>
+                    <td>{{ s.name }}</td>
+                    <td>{{ s.unique_code }}</td>
+                    <td>{{ s.roll_no if s.roll_no else "-" }}</td>
+                    <td>{{ s.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No students created yet.</p>
+    {% endif %}
 </div>
+
 
 </body>
 </html>

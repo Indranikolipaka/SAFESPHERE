@@ -243,6 +243,70 @@ def principal_dashboard():
 # ---------- COMPLAINTS ----------
 # ... Include complaint routes similarly with proper get_db() context, allowed_file, and safe updates
 
+@app.route('/create_student', methods=['POST'])
+@require_login
+def create_student():
+    if session.get('role') != 'teacher':
+        return redirect(url_for('index'))
+    
+    fullname = request.form.get('fullname')
+    username = request.form.get('username')
+    password = request.form.get('password')
+    roll_no = request.form.get('roll_no')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    
+    conn = get_db()
+    existing = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+    if existing:
+        flash('Username already exists', 'danger')
+        conn.close()
+        return redirect(url_for('teacher_dashboard'))
+    
+    teacher = conn.execute('SELECT ref_id FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    teacher_id = teacher['ref_id']
+    
+    hashed = generate_password_hash(password)
+    try:
+        code = generate_student_code(conn)
+        user_id = conn.execute(
+            'INSERT INTO users (role, username, password, email, phone, approved) VALUES (?, ?, ?, ?, ?, 1)',
+            ('student', username, hashed, email, phone)
+        ).lastrowid
+        student_id = conn.execute('INSERT INTO students (name, unique_code, mentor_id, roll_no) VALUES (?, ?, ?, ?)',
+                    (fullname, code, teacher_id, roll_no)).lastrowid
+        conn.execute('UPDATE users SET ref_id = ? WHERE id = ?', (student_id, user_id))
+        conn.commit()
+        # Generate reset token for new student
+        token = generate_reset_token(conn, user_id)
+        flash(f'✓ Student {fullname} created! Reset token: {token}', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error: {str(e)}', 'danger')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('teacher_dashboard'))
+
+@app.route('/delete_student', methods=['POST'])
+@require_login
+def delete_student():
+    if session.get('role') != 'teacher':
+        return redirect(url_for('index'))
+    
+    student_id = request.form.get('student_id')
+    conn = get_db()
+    
+    conn.execute('DELETE FROM complaints WHERE student_id = ?', (student_id,))
+    conn.execute('DELETE FROM feedback WHERE complaint_id IN (SELECT id FROM complaints WHERE student_id = ?)', (student_id,))
+    conn.execute('DELETE FROM students WHERE id = ?', (student_id,))
+    conn.execute('DELETE FROM users WHERE ref_id = ?', (student_id,))
+    conn.commit()
+    conn.close()
+    
+    flash('Student deleted', 'success')
+    return redirect(url_for('teacher_dashboard'))
+
 # ---------- FILE UPLOADS ----------
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):

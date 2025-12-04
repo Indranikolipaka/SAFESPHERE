@@ -51,9 +51,10 @@
             padding-bottom: 12px;
             border-bottom: 1px solid #dcdcdc;
         }
-        .complaint-box button {
+        .complaint-box .buttons button {
             margin-right: 5px;
             margin-top: 5px;
+            cursor: pointer;
         }
 
         /* Student list */
@@ -89,14 +90,14 @@
     <!-- GOOGLE CHARTS -->
     <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script>
-    let acceptedCount = Number('{{ accepted|default(0) }}');
-    let rejectedCount = Number('{{ rejected|default(0) }}');
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
 
-    function drawChart(accepted = acceptedCount, rejected = rejectedCount) {
+    function drawChart() {
         var data = google.visualization.arrayToDataTable([
             ['Status', 'Count'],
-            ['Accepted', accepted],
-            ['Rejected', rejected]
+            ['Accepted', Number('{{ accepted|default(0) }}')],
+            ['Rejected', Number('{{ rejected|default(0) }}')]
         ]);
 
         var options = {
@@ -110,10 +111,7 @@
         chart.draw(data, options);
     }
 
-    google.charts.load('current', {'packages':['corechart']});
-    google.charts.setOnLoadCallback(drawChart);
-
-    window.addEventListener('resize', () => drawChart());
+    window.addEventListener('resize', drawChart);
     </script>
 </head>
 <body>
@@ -137,16 +135,15 @@
         <h3>Complaints Assigned</h3>
 
         {% for c in complaints %}
-        <div class="complaint-box">
-            <b>#{{ c.id }} from {{ c.student_name }} — {{ c.category }} — {{ c.status }}</b>
+        <div class="complaint-box" id="complaint-{{ c.id }}">
+            <b>#{{ c.id }} from {{ c.student_name }} — {{ c.category }} — <span class="status">{{ c.status }}</span></b>
             <p>{{ c.description }}</p>
 
-            <form method="POST" action="/complaint/action">
-                <input type="hidden" name="complaint_id" value="{{ c.id }}">
-                <button name="action" value="accept">Accept</button>
-                <button name="action" value="reject">Reject</button>
-                <button name="action" value="forward">Forward to Principal</button>
-            </form>
+            <div class="buttons">
+                <button class="complaint-btn" data-id="{{ c.id }}" data-action="accept">Accept</button>
+                <button class="complaint-btn" data-id="{{ c.id }}" data-action="reject">Reject</button>
+                <button class="complaint-btn" data-id="{{ c.id }}" data-action="forward">Forward to Principal</button>
+            </div>
         </div>
         {% else %}
         <p>No complaints assigned.</p>
@@ -202,32 +199,25 @@
     </div>
 
 <script>
-document.querySelectorAll('.complaint-box form').forEach(form => {
-    form.addEventListener('submit', function(e){
-        e.preventDefault();
-        const formData = new FormData(form);
-        fetch(form.action, {
-            method: 'POST',
-            body: formData
+document.querySelectorAll('.complaint-btn').forEach(btn => {
+    btn.addEventListener('click', function(){
+        const complaintId = this.dataset.id;
+        const action = this.dataset.action;
+
+        fetch(`/teacher/complaint/${complaintId}/${action}`, {
+            method: 'POST'
         })
         .then(res => res.json())
         .then(data => {
-            if(data.ok){
-                alert('Action completed: ' + data.new_status);
-
-                // Update pie chart counts
-                acceptedCount = data.accepted;
-                rejectedCount = data.rejected;
-                drawChart(acceptedCount, rejectedCount);
-
-                // Update complaint status on page
-                const statusText = form.closest('.complaint-box').querySelector('b');
-                statusText.textContent = statusText.textContent.replace(/— .*$/, '— ' + data.new_status);
+            if(data.success){
+                const box = document.getElementById(`complaint-${complaintId}`);
+                box.querySelector('.status').innerText = action === 'forward' ? 'Forwarded to Principal' : action.charAt(0).toUpperCase() + action.slice(1);
+                alert('Action completed!');
             } else {
                 alert('Error: ' + (data.error || 'Unknown'));
             }
         })
-        .catch(err => alert('Request failed: ' + err));
+        .catch(err => alert('Fetch error: ' + err));
     });
 });
 </script>

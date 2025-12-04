@@ -1,225 +1,197 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿<!doctype html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher Dashboard - SafeSphere</title>
-
-    <style>
-        body {
-            margin: 0;
-            background: #fbf8ef;
-            font-family: Arial, sans-serif;
-        }
-
-        /* Top Bar */
-        .topbar {
-            background: #fdeeee;
-            padding: 15px 20px;
-            font-weight: bold;
-            font-size: 18px;
-            border-bottom: 1px solid #ddd;
-        }
-        .topbar .right-buttons {
-            float: right;
-        }
-        .topbar button {
-            padding: 6px 12px;
-            margin-left: 8px;
-            cursor: pointer;
-        }
-
-        /* Card design */
-        .card {
-            background: white;
-            padding: 20px;
-            margin: 20px auto;
-            width: 92%;
-            border-radius: 8px;
-            box-shadow: 0px 0px 4px rgba(0,0,0,0.1);
-        }
-
-        /* Pie chart */
-        .chart-container {
-            width: 60%;
-            margin: 0 auto;
-        }
-
-        /* Complaint items */
-        .complaint-box {
-            margin-bottom: 18px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #dcdcdc;
-        }
-        .complaint-box .buttons button {
-            margin-right: 5px;
-            margin-top: 5px;
-            cursor: pointer;
-        }
-
-        /* Student list */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        table th, table td {
-            padding: 10px;
-            text-align: left;
-        }
-        table th {
-            background: #f1f1f1;
-        }
-        table td button {
-            padding: 6px 10px;
-        }
-
-        /* Create Student */
-        input[type=text], input[type=password], input[type=email], input[type=number] {
-            padding: 7px;
-            width: 60%;
-            margin-bottom: 10px;
-            border: 1px solid #bbb;
-            border-radius: 5px;
-        }
-        .create-btn {
-            padding: 8px 15px;
-            margin-top: 10px;
-        }
-    </style>
-
-    <!-- GOOGLE CHARTS -->
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
-    <script>
-    google.charts.load('current', {'packages':['corechart']});
-    google.charts.setOnLoadCallback(drawChart);
-
-    function drawChart() {
-        var data = google.visualization.arrayToDataTable([
-            ['Status', 'Count'],
-            ['Accepted', Number('{{ accepted|default(0) }}')],
-            ['Rejected', Number('{{ rejected|default(0) }}')]
-        ]);
-
-        var options = {
-            title: '',
-            colors: ['#4CAF50', '#E74C3C'],
-            legend: { position: 'top' },
-            chartArea: { width: '90%', height: '80%' }
-        };
-
-        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
-        chart.draw(data, options);
+  <meta charset="utf-8">
+  <title>Teacher Dashboard - SafeSphere</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/teacher.css">
+  <style>
+    body.teacher-bg {
+      background: linear-gradient(to bottom right, #e0f7fa, #f0fdfd);
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
     }
-
-    window.addEventListener('resize', drawChart);
-    </script>
+    main { padding: 20px; max-height: calc(100vh - 80px); overflow-y: auto; }
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f7f7f7; }
+    .btn { padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer; margin-right:4px; }
+    .btn.accept { background-color:#28a745; color:white; }
+    .btn.reject { background-color:#ffc107; color:black; }
+    .btn.forward { background-color:#17a2b8; color:white; }
+    .btn:disabled { opacity:0.6; cursor:not-allowed; }
+    .highlight { background-color: #d1ecf1; } /* forwarded complaints highlight */
+  </style>
 </head>
-<body>
-
-    <!-- Top bar -->
-    <div class="topbar">
-        Welcome {{ teacher.name }}, ID: {{ teacher.teacher_code }}
-        <div class="right-buttons">
-            <button onclick="location.href='/change_password'">Change Password</button>
-            <button onclick="location.href='/logout'">Logout</button>
-        </div>
-    </div>
-
-    <!-- Pie chart -->
-    <div class="card">
-        <div id="piechart" class="chart-container" style="height: 500px;"></div>
-    </div>
-
-    <!-- Complaints -->
-    <div class="card">
-        <h3>Complaints Assigned</h3>
-
-        {% for c in complaints %}
-        <div class="complaint-box" id="complaint-{{ c.id }}">
-            <b>#{{ c.id }} from {{ c.student_name }} — {{ c.category }} — <span class="status">{{ c.status }}</span></b>
-            <p>{{ c.description }}</p>
-
-            <div class="buttons">
-                <button class="complaint-btn" data-id="{{ c.id }}" data-action="accept">Accept</button>
-                <button class="complaint-btn" data-id="{{ c.id }}" data-action="reject">Reject</button>
-                <button class="complaint-btn" data-id="{{ c.id }}" data-action="forward">Forward to Principal</button>
-            </div>
-        </div>
+<body class="teacher-bg">
+  <div class="container">
+    <header style="display:flex; justify-content:space-between; align-items:center; padding:10px 20px;">
+      <h2>Hello {{ teacher.name }}</h2>
+      <div style="text-align:right;">
+        {% if reset_token %}
+          <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">
+            Token: {{ reset_token }}
+          </div>
+          <div class="muted" style="display:block; font-size:0.85rem">Expires: {{ reset_expires }}</div>
         {% else %}
-        <p>No complaints assigned.</p>
-        {% endfor %}
-    </div>
+          <form method="post" action="/generate_token" style="display:inline">
+            <button class="btn" type="submit">Generate Reset Token</button>
+          </form>
+        {% endif %}
+        <nav style="margin-top:6px;">
+          <a href="/change_password" class="btn">Change Password</a>
+          <a href="/logout" class="btn">Logout</a>
+        </nav>
+      </div>
+    </header>
 
-    <!-- Create student -->
-    <div class="card">
-        <h3>Create Student Account</h3>
-
-        <form method="POST" action="/create_student">
-            <input type="text" name="fullname" placeholder="Full name" required><br>
-            <input type="text" name="username" placeholder="Username" required><br>
-            <input type="password" name="temp_password" placeholder="Temporary Password" required><br>
-            <input type="text" name="rollno" placeholder="Roll number (optional)"><br>
-            <input type="email" name="email" placeholder="Email (optional)"><br>
-            <input type="text" name="phone" placeholder="Phone (optional)"><br>
-
-            <button class="create-btn" type="submit">Create Student</button>
-        </form>
-    </div>
-
-    <!-- Student List -->
-    <div class="card">
-        <h3>My Students</h3>
-
+    <main>
+      <!-- Complaints Assigned -->
+      <section class="card">
+        <h3>Assigned Complaints</h3>
         <table>
+          <thead>
             <tr>
-                <th>Name</th>
-                <th>Code</th>
-                <th>Roll No</th>
-                <th>Action</th>
+              <th>ID</th>
+              <th>Student</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-
-            {% for s in students %}
-            <tr>
-                <td>{{ s.name }}</td>
-                <td>{{ s.unique_code }}</td>
-                <td>{{ s.roll_no }}</td>
-                <td>
-                    <form method="POST" action="/delete_student">
-                        <input type="hidden" name="student_id" value="{{ s.id }}">
-                        <button type="submit">Delete</button>
-                    </form>
-                </td>
+          </thead>
+          <tbody>
+            {% for c in complaints %}
+            <tr id="complaint-{{ c.id }}" class="{% if c.forwarded %}highlight{% endif %}">
+              <td>{{ c.id }}</td>
+              <td>{{ c.student_name }}</td>
+              <td>{{ c.category }}</td>
+              <td>{{ c.description }}</td>
+              <td class="status">{{ c.status }}</td>
+              <td>
+                {% if not c.forwarded %}
+                  <button class="btn accept" data-id="{{ c.id }}" data-action="accept">Accept</button>
+                  <button class="btn reject" data-id="{{ c.id }}" data-action="reject">Reject</button>
+                  <button class="btn forward" data-id="{{ c.id }}" data-action="forward">Forward</button>
+                {% else %}
+                  <span>Forwarded</span>
+                {% endif %}
+              </td>
             </tr>
             {% else %}
-            <tr>
-                <td colspan="4">No students found</td>
-            </tr>
+            <tr><td colspan="6">No complaints assigned.</td></tr>
             {% endfor %}
+          </tbody>
         </table>
-    </div>
+      </section>
 
-<script>
-document.querySelectorAll('.complaint-btn').forEach(btn => {
-    btn.addEventListener('click', function(){
-        const complaintId = this.dataset.id;
+      <!-- Students under this teacher -->
+      <section class="card">
+        <h3>Your Students</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Roll No</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td>{{ s.id }}</td>
+              <td>{{ s.name }}</td>
+              <td>{{ s.roll_no }}</td>
+              <td>
+                <form method="post" action="/delete_student" style="display:inline;">
+                  <input type="hidden" name="student_id" value="{{ s.id }}">
+                  <button class="btn delete" type="submit" onclick="return confirm('Delete this student?')">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No students assigned.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Complaint action buttons (Accept / Reject / Forward)
+    document.querySelectorAll('button[data-id]').forEach(btn => {
+      btn.addEventListener('click', function(){
+        const id = this.dataset.id;
         const action = this.dataset.action;
 
-        fetch(`/teacher/complaint/${complaintId}/${action}`, {
-            method: 'POST'
-        })
+        if(!confirm(`Are you sure you want to ${action} this complaint?`)) return;
+
+        fetch(`/teacher/complaint/${id}/${action}`, { method: 'POST' })
         .then(res => res.json())
         .then(data => {
-            if(data.success){
-                const box = document.getElementById(`complaint-${complaintId}`);
-                box.querySelector('.status').innerText = action === 'forward' ? 'Forwarded to Principal' : action.charAt(0).toUpperCase() + action.slice(1);
-                alert('Action completed!');
+          if(data.success){
+            const row = document.getElementById(`complaint-${id}`);
+            const statusCell = row.querySelector('.status');
+
+            if(action === 'forward'){
+              statusCell.innerText = 'Forwarded to Principal';
+              row.classList.add('highlight');
+              row.querySelectorAll('button').forEach(b => b.disabled = true);
             } else {
-                alert('Error: ' + (data.error || 'Unknown'));
+              statusCell.innerText = action.charAt(0).toUpperCase() + action.slice(1);
+              row.querySelectorAll('button').forEach(b => b.disabled = true);
             }
+
+            alert('Action completed!');
+          } else {
+            alert('Error: ' + (data.error || 'Unknown'));
+          }
         })
         .catch(err => alert('Fetch error: ' + err));
+      });
     });
-});
+  </script>
+  <script>
+  // Complaint actions for teacher
+  function handleTeacherComplaint(id, action){
+    if(!confirm(`Are you sure you want to ${action} this complaint?`)) return;
+    
+    fetch(`/teacher/complaint/${id}/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.success){
+        const row = document.getElementById('complaint-' + id);
+        if(action === 'delete' || action === 'forward') {
+          // Remove forwarded/deleted complaint from table
+          row.remove();
+        } else {
+          row.querySelectorAll('button').forEach(b => b.disabled = true);
+          row.style.backgroundColor = action === 'accept' ? '#d4edda' : '#fff3cd';
+          document.getElementById('status-' + id).textContent = action === 'accept' ? 'Accepted' : 'Rejected';
+        }
+      } else {
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(err => alert('Something went wrong.'));
+  }
+
+  // Attach event listeners
+  document.querySelectorAll('button[data-id]').forEach(btn => {
+    btn.addEventListener('click', function(){
+      const id = this.dataset.id;
+      const action = this.dataset.action;
+      handleTeacherComplaint(id, action);
+    });
+  });
 </script>
 
 </body>

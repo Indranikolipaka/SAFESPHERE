@@ -87,29 +87,33 @@
     </style>
 
     <!-- GOOGLE CHARTS -->
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
-    <script>
-    google.charts.load('current', {'packages':['corechart']});
-    google.charts.setOnLoadCallback(drawChart);
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawChart);
 
-    function drawChart() {
-        var data = google.visualization.arrayToDataTable([
-            ['Status', 'Count'],
-            ['Accepted', Number('{{ accepted }}')],
-            ['Rejected', Number('{{ rejected }}')]
-        ]);
+function drawChart() {
+    var data = google.visualization.arrayToDataTable([
+        ['Status', 'Count'],
+        ['Accepted', Number('{{ accepted|default(0) }}')],
+        ['Rejected', Number('{{ rejected|default(0) }}')]
+    ]);
 
-        var options = {
-            title: '',
-            colors: ['#4CAF50', '#E74C3C'],
-            legend: { position: 'top' },
-            chartArea: { width: '90%', height: '80%' }
-        };
+    var options = {
+        title: '',
+        colors: ['#4CAF50', '#E74C3C'],
+        legend: { position: 'top' },
+        chartArea: { width: '90%', height: '80%' }
+    };
 
-        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
-        chart.draw(data, options);
-    }
+    var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+    chart.draw(data, options);
+}
+
+// Make chart responsive
+window.addEventListener('resize', drawChart);
 </script>
+
 
 
 </head>

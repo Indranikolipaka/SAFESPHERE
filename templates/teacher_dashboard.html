@@ -1,182 +1,99 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher Dashboard - SafeSphere</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Dashboard - SafeSphere</title>
 
-    <style>
-        body {
-            margin: 0;
-            background: #fbf8ef;
-            font-family: Arial, sans-serif;
-        }
+<style>
+body { margin: 0; font-family: Arial, sans-serif; background: #fbf8ef; }
+.topbar { background: #fdeeee; padding: 15px 20px; font-weight: bold; font-size: 18px; border-bottom: 1px solid #ddd; }
+.topbar .right-buttons { float: right; }
+.topbar button { padding: 6px 12px; margin-left: 8px; cursor: pointer; }
+.card { background: white; padding: 20px; margin: 20px auto; width: 92%; border-radius: 8px; box-shadow: 0 0 4px rgba(0,0,0,0.1); }
+.chart-container { width: 60%; margin: 0 auto; }
+.complaint-box { margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #dcdcdc; }
+.complaint-box button { margin-right: 5px; margin-top: 5px; }
+table { width: 100%; border-collapse: collapse; }
+table th, table td { padding: 10px; text-align: left; }
+table th { background: #f1f1f1; }
+table td button { padding: 6px 10px; }
+input[type=text], input[type=password], input[type=email], input[type=number] { padding: 7px; width: 60%; margin-bottom: 10px; border: 1px solid #bbb; border-radius: 5px; }
+.create-btn { padding: 8px 15px; margin-top: 10px; }
+</style>
 
-        /* Top Bar */
-        .topbar {
-            background: #fdeeee;
-            padding: 15px 20px;
-            font-weight: bold;
-            font-size: 18px;
-            border-bottom: 1px solid #ddd;
-        }
-        .topbar .right-buttons {
-            float: right;
-        }
-        .topbar button {
-            padding: 6px 12px;
-            margin-left: 8px;
-            cursor: pointer;
-        }
+<!-- GOOGLE CHARTS -->
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawChart);
 
-        /* Card design */
-        .card {
-            background: white;
-            padding: 20px;
-            margin: 20px auto;
-            width: 92%;
-            border-radius: 8px;
-            box-shadow: 0px 0px 4px rgba(0,0,0,0.1);
-        }
+function drawChart() {
+    var data = google.visualization.arrayToDataTable([
+        ['Status', 'Count'],
+        ['Accepted', Number('{{ accepted }}')],
+        ['Rejected', Number('{{ rejected }}')]
+    ]);
 
-        /* Pie chart */
-        .chart-container {
-            width: 60%;
-            margin: 0 auto;
-        }
-
-        /* Complaint items */
-        .complaint-box {
-            margin-bottom: 18px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #dcdcdc;
-        }
-        .complaint-box button {
-            margin-right: 5px;
-            margin-top: 5px;
-        }
-
-        /* Student list */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        table th, table td {
-            padding: 10px;
-            text-align: left;
-        }
-        table th {
-            background: #f1f1f1;
-        }
-        table td button {
-            padding: 6px 10px;
-        }
-
-        /* Create Student */
-        input[type=text], input[type=password], input[type=email], input[type=number] {
-            padding: 7px;
-            width: 60%;
-            margin-bottom: 10px;
-            border: 1px solid #bbb;
-            border-radius: 5px;
-        }
-        .create-btn {
-            padding: 8px 15px;
-            margin-top: 10px;
-        }
-    </style>
-
-    <!-- GOOGLE CHARTS -->
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
-    <script>
-    google.charts.load('current', {'packages':['corechart']});
-    google.charts.setOnLoadCallback(drawChart);
-
-    function drawChart() {
-        var data = google.visualization.arrayToDataTable([
-            ['Status', 'Count'],
-            ['Accepted', Number('{{ accepted }}')],
-            ['Rejected', Number('{{ rejected }}')]
-        ]);
-
-        var options = {
-            title: '',
-            colors: ['#4CAF50', '#E74C3C'],
-            legend: { position: 'top' },
-            chartArea: { width: '90%', height: '80%' }
-        };
-
-        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
-        chart.draw(data, options);
-    }
+    var options = { title: '', colors: ['#4CAF50','#E74C3C'], legend: { position: 'top' }, chartArea: { width: '90%', height: '80%' } };
+    var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+    chart.draw(data, options);
+}
 </script>
-
-
 </head>
 <body>
 
-    <!-- Top bar -->
-    <div class="topbar">
-        Welcome {{ teacher.name }}, ID: {{ teacher.code }}
-        <div class="right-buttons">
-            <button onclick="location.href='/change-password'">Change Password</button>
-            <button onclick="location.href='/logout'">Logout</button>
-        </div>
+<div class="topbar">
+    Welcome {{ teacher.name }} (ID: {{ teacher.teacher_code }})
+    <div class="right-buttons">
+        <button onclick="location.href='/change_password'">Change Password</button>
+        <button onclick="location.href='/logout'">Logout</button>
     </div>
+</div>
 
-    <!-- Pie chart -->
-    <div class="card">
-        <div id="piechart" class="chart-container" style="height: 500px;"></div>
-    </div>
+<!-- Pie Chart -->
+<div class="card">
+    <div id="piechart" class="chart-container" style="height: 400px;"></div>
+</div>
 
-    <!-- Complaints -->
-    <div class="card">
-        <h3>Complaints Assigned</h3>
-
-        {% for c in complaints %}
-        <div class="complaint-box">
-            <b>#{{ c.id }} from {{ c.student_name }} — {{ c.category }} — {{ c.status }}</b>
-            <p>{{ c.description }}</p>
-
-            <form method="POST" action="/complaint/action">
-                <input type="hidden" name="complaint_id" value="{{ c.id }}">
-
-                <button name="action" value="accept">Accept</button>
-                <button name="action" value="reject">Reject</button>
-                <button name="action" value="forward">Forward to Principal</button>
-            </form>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Create student -->
-    <div class="card">
-        <h3>Create Student Account</h3>
-
-        <form method="POST" action="/teacher/create-student">
-            <input type="text" name="fullname" placeholder="Full name" required><br>
-            <input type="text" name="username" placeholder="Username" required><br>
-            <input type="password" name="temp_password" placeholder="Temporary Password" required><br>
-            <input type="text" name="rollno" placeholder="Roll number (optional)"><br>
-            <input type="email" name="email" placeholder="Email (optional)"><br>
-            <input type="text" name="phone" placeholder="Phone (optional)"><br>
-
-            <button class="create-btn" type="submit">Create Student</button>
+<!-- Complaints -->
+<div class="card">
+    <h3>Complaints Assigned</h3>
+    {% for c in complaints %}
+    <div class="complaint-box">
+        <b>#{{ c.id }} from {{ c.student_name }} — {{ c.category }} — {{ c.status }}</b>
+        <p>{{ c.description }}</p>
+        <form method="POST" action="/complaint/action">
+            <input type="hidden" name="complaint_id" value="{{ c.id }}">
+            <button name="action" value="accept">Accept</button>
+            <button name="action" value="reject">Reject</button>
+            <button name="action" value="forward">Forward to Principal</button>
         </form>
     </div>
+    {% else %}
+    <p>No complaints assigned.</p>
+    {% endfor %}
+</div>
 
-    <!-- Student List -->
+<!-- Create Student -->
+<div class="card">
+    <h3>Create Student Account</h3>
+    <form method="POST" action="/create_student">
+        <input type="text" name="fullname" placeholder="Full name" required><br>
+        <input type="text" name="username" placeholder="Username" required><br>
+        <input type="password" name="temp_password" placeholder="Temporary Password" required><br>
+        <input type="text" name="rollno" placeholder="Roll number"><br>
+        <input type="email" name="email" placeholder="Email"><br>
+        <input type="text" name="phone" placeholder="Phone"><br>
+        <button class="create-btn" type="submit">Create Student</button>
+    </form>
+</div>
+
+<!-- My Students -->
 <div class="card">
     <h3>My Students</h3>
-
     <table>
-        <tr>
-            <th>Name</th>
-            <th>Code</th>
-            <th>Roll No</th>
-            <th>Action</th>
-        </tr>
-
+        <tr><th>Name</th><th>Code</th><th>Roll No</th><th>Action</th></tr>
         {% for s in students %}
         <tr>
             <td>{{ s.name }}</td>
@@ -190,13 +107,10 @@
             </td>
         </tr>
         {% else %}
-        <tr>
-            <td colspan="4">No students found</td>
-        </tr>
+        <tr><td colspan="4">No students found</td></tr>
         {% endfor %}
     </table>
 </div>
-
 
 </body>
 </html>

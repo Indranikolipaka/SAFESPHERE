@@ -320,30 +320,27 @@ def student_dashboard():
 @app.route('/teacher_dashboard')
 @require_login
 def teacher_dashboard():
-    # Access control
     if session.get('role') != 'teacher':
         flash('Access denied', 'danger')
         return redirect(url_for('index'))
 
     conn = get_db()
 
-    # Fetch teacher profile (correct)
+    # Get teacher profile
     teacher = conn.execute(
-        '''
-        SELECT * FROM teachers 
-        WHERE id = (SELECT ref_id FROM users WHERE id = ?)
-        ''',
+        'SELECT * FROM teachers WHERE id = (SELECT ref_id FROM users WHERE id = ?)',
         (session['user_id'],)
     ).fetchone()
-
+    
     if not teacher:
         flash('Teacher profile not found', 'danger')
         conn.close()
         return redirect(url_for('logout'))
 
     teacher_id = teacher['id']
+    session['teacher_id'] = teacher_id  # Store teacher_id in session for delete routes
 
-    # Fetch complaints assigned to this teacher
+    # Complaints assigned to this teacher
     complaints = conn.execute(
         '''
         SELECT c.*, s.name AS student_name
@@ -355,49 +352,40 @@ def teacher_dashboard():
         (teacher_id,)
     ).fetchall()
 
-    # Complaint statistics
+    # Complaint stats
     accepted = sum(c['status'] == 'Accepted' for c in complaints)
     rejected = sum(c['status'] == 'Rejected' for c in complaints)
 
-    # FIXED: pending student applicants query
+    # Pending student applicants
     applicants = conn.execute(
         '''
         SELECT u.id AS user_id, u.username, u.email, st.name, st.unique_code
         FROM users u
-        JOIN students st ON u.ref_id = st.id        -- FIXED JOIN
+        JOIN students st ON u.ref_id = st.id
         WHERE u.approved = 0 AND u.role = 'student'
         '''
     ).fetchall()
 
-    # Students created by this teacher
-    my_students = conn.execute(
-        '''
-        SELECT * FROM students
-        WHERE mentor_id = ?
-        ORDER BY created_at DESC
-        ''',
+    # Students created/assigned to this teacher
+    students = conn.execute(
+        'SELECT * FROM students WHERE mentor_id = ? ORDER BY created_at DESC',
         (teacher_id,)
     ).fetchall()
 
-    # Reset token for teacher (if exists)
+    # Reset token (if any)
     token_row = conn.execute(
         '''
         SELECT * FROM reset_tokens
-        WHERE user_id = ?
-        AND used = 0
-        AND expires_at > datetime("now")
-        ORDER BY created_at DESC
-        LIMIT 1
+        WHERE user_id = ? AND used = 0 AND expires_at > datetime("now")
+        ORDER BY created_at DESC LIMIT 1
         ''',
         (session['user_id'],)
     ).fetchone()
-
     token = token_row['token'] if token_row else None
     token_expires = token_row['expires_at'] if token_row else None
 
     conn.close()
 
-    # Render dashboard
     return render_template(
         'teacher_dashboard.html',
         teacher=teacher,
@@ -405,10 +393,11 @@ def teacher_dashboard():
         accepted=accepted,
         rejected=rejected,
         applicants=applicants,
-        my_students=my_students,
+        students=students,   # ✅ Matches template
         reset_token=token,
         reset_expires=token_expires
     )
+
 
 
 

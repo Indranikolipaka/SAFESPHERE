@@ -2,169 +2,201 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Teacher Dashboard</title>
-    <link rel="stylesheet" href="/static/css/common.css">
-    <link rel="stylesheet" href="/static/css/dashboard.css">
-</head>
-<body>
-    <header>
-        <h1>Welcome, {{ teacher.name }}</h1>
-        <form action="{{ url_for('logout') }}" method="get" style="display:inline;">
-            <button type="submit">Logout</button>
-        </form>
-        {% if reset_token %}
-            <p>Reset Token: {{ reset_token }} (Expires: {{ reset_expires }})</p>
-        {% endif %}
-    </header>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - SafeSphere</title>
 
-    <section>
-        <h2>Assigned Complaints</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Student</th>
-                    <th>Category</th>
-                    <th>Description</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in complaints %}
-                <tr data-complaint-id="{{ c.id }}">
-                    <td>{{ c.id }}</td>
-                    <td>{{ c.student_name }}</td>
-                    <td>{{ c.category }}</td>
-                    <td>{{ c.description }}</td>
-                    <td>{{ c.status }}</td>
-                    <td>
-                        <button class="accept">Accept</button>
-                        <button class="reject">Reject</button>
-                        <button class="forward">Forward</button>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="6">No complaints assigned.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
-
-    <section>
-        <h2>Pending Student Approvals</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Code</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for a in applicants %}
-                <tr data-user-id="{{ a.user_id }}">
-                    <td>{{ a.username }}</td>
-                    <td>{{ a.name }}</td>
-                    <td>{{ a.email }}</td>
-                    <td>{{ a.unique_code }}</td>
-                    <td>
-                        <form action="{{ url_for('approve_account') }}" method="post" style="display:inline;">
-                            <input type="hidden" name="user_id" value="{{ a.user_id }}">
-                            <button type="submit">Approve</button>
-                        </form>
-                        <form action="{{ url_for('reject_account') }}" method="post" style="display:inline;">
-                            <input type="hidden" name="user_id" value="{{ a.user_id }}">
-                            <button type="submit">Reject</button>
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5">No pending approvals.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
-
-    <section>
-        <h2>Students</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Student Code</th>
-                    <th>Name</th>
-                    <th>Roll No</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in students %}
-                <tr data-student-id="{{ s.id }}">
-                    <td>{{ s.unique_code }}</td>
-                    <td>{{ s.name }}</td>
-                    <td>{{ s.roll_no or '' }}</td>
-                    <td>
-                        <form action="{{ url_for('delete_student') }}" method="post" style="display:inline;">
-                            <input type="hidden" name="student_id" value="{{ s.id }}">
-                            <button type="submit">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="4">No students assigned.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
-
-    <script>
-        // --- Complaint Actions ---
-        function submitComplaintAction(id, actionType, reason='') {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/complaint/action';
-
-            const inputId = document.createElement('input');
-            inputId.type = 'hidden';
-            inputId.name = 'complaint_id';
-            inputId.value = id;
-            form.appendChild(inputId);
-
-            const inputAction = document.createElement('input');
-            inputAction.type = 'hidden';
-            inputAction.name = 'action';
-            inputAction.value = actionType;
-            form.appendChild(inputAction);
-
-            if(reason) {
-                const inputReason = document.createElement('input');
-                inputReason.type = 'hidden';
-                inputReason.name = 'reason';
-                inputReason.value = reason;
-                form.appendChild(inputReason);
-            }
-
-            document.body.appendChild(form);
-            form.submit();
+    <style>
+        body {
+            margin: 0;
+            background: #fbf8ef;
+            font-family: Arial, sans-serif;
         }
 
-        document.querySelectorAll('tr[data-complaint-id]').forEach(tr=>{
-            const id = tr.dataset.complaintId;
+        /* Top Bar */
+        .topbar {
+            background: #fdeeee;
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 18px;
+            border-bottom: 1px solid #ddd;
+        }
+        .topbar .right-buttons {
+            float: right;
+        }
+        .topbar button {
+            padding: 6px 12px;
+            margin-left: 8px;
+            cursor: pointer;
+        }
 
-            tr.querySelector('.accept').onclick = ()=>submitComplaintAction(id, 'accept');
+        /* Card design */
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 92%;
+            border-radius: 8px;
+            box-shadow: 0px 0px 4px rgba(0,0,0,0.1);
+        }
 
-            tr.querySelector('.reject').onclick = ()=>{
-                const reason = prompt("Enter reason for rejection:");
-                if(reason) submitComplaintAction(id, 'reject', reason);
-            };
+        /* Pie chart */
+        .chart-container {
+            width: 60%;
+            margin: 0 auto;
+        }
 
-            tr.querySelector('.forward').onclick = ()=>{
-                const reason = prompt("Enter reason for forwarding to Principal:");
-                if(reason) submitComplaintAction(id, 'forward', reason);
-            };
-        });
-    </script>
+        /* Complaint items */
+        .complaint-box {
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dcdcdc;
+        }
+        .complaint-box button {
+            margin-right: 5px;
+            margin-top: 5px;
+        }
+
+        /* Student list */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+        }
+        table th {
+            background: #f1f1f1;
+        }
+        table td button {
+            padding: 6px 10px;
+        }
+
+        /* Create Student */
+        input[type=text], input[type=password], input[type=email], input[type=number] {
+            padding: 7px;
+            width: 60%;
+            margin-bottom: 10px;
+            border: 1px solid #bbb;
+            border-radius: 5px;
+        }
+        .create-btn {
+            padding: 8px 15px;
+            margin-top: 10px;
+        }
+    </style>
+
+    <!-- GOOGLE CHARTS -->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+            ['Status', 'Count'],
+            ['Accepted', Number('{{ accepted }}')],
+            ['Rejected', Number('{{ rejected }}')]
+        ]);
+
+        var options = {
+            title: '',
+            colors: ['#4CAF50', '#E74C3C'],
+            legend: { position: 'top' },
+            chartArea: { width: '90%', height: '80%' }
+        };
+
+        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+        chart.draw(data, options);
+    }
+</script>
+
+
+</head>
+<body>
+
+    <!-- Top bar -->
+    <div class="topbar">
+        Welcome {{ teacher.name }}, ID: {{ teacher.code }}
+        <div class="right-buttons">
+            <button onclick="location.href='/change-password'">Change Password</button>
+            <button onclick="location.href='/logout'">Logout</button>
+        </div>
+    </div>
+
+    <!-- Pie chart -->
+    <div class="card">
+        <div id="piechart" class="chart-container" style="height: 500px;"></div>
+    </div>
+
+    <!-- Complaints -->
+    <div class="card">
+        <h3>Complaints Assigned</h3>
+
+        {% for c in complaints %}
+        <div class="complaint-box">
+            <b>#{{ c.id }} from {{ c.student_name }} — {{ c.category }} — {{ c.status }}</b>
+            <p>{{ c.description }}</p>
+
+            <form method="POST" action="/complaint/action">
+                <input type="hidden" name="complaint_id" value="{{ c.id }}">
+
+                <button name="action" value="accept">Accept</button>
+                <button name="action" value="reject">Reject</button>
+                <button name="action" value="forward">Forward to Principal</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Create student -->
+    <div class="card">
+        <h3>Create Student Account</h3>
+
+        <form method="POST" action="/teacher/create-student">
+            <input type="text" name="fullname" placeholder="Full name" required><br>
+            <input type="text" name="username" placeholder="Username" required><br>
+            <input type="password" name="temp_password" placeholder="Temporary Password" required><br>
+            <input type="text" name="rollno" placeholder="Roll number (optional)"><br>
+            <input type="email" name="email" placeholder="Email (optional)"><br>
+            <input type="text" name="phone" placeholder="Phone (optional)"><br>
+
+            <button class="create-btn" type="submit">Create Student</button>
+        </form>
+    </div>
+
+    <!-- Student List -->
+<div class="card">
+    <h3>My Students</h3>
+
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Code</th>
+            <th>Roll No</th>
+            <th>Action</th>
+        </tr>
+
+        {% for s in students %}
+        <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.unique_code }}</td>
+            <td>{{ s.roll_no }}</td>
+            <td>
+                <form method="POST" action="/delete_student">
+                    <input type="hidden" name="student_id" value="{{ s.id }}">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">No students found</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+
 </body>
 </html>

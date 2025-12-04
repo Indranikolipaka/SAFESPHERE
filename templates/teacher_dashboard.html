@@ -166,32 +166,37 @@
     </div>
 
     <!-- Student List -->
-    <div class="card">
-        <h3>My Students</h3>
+<div class="card">
+    <h3>My Students</h3>
 
-        <table>
-            <tr>
-                <th>Name</th>
-                <th>Code</th>
-                <th>Roll No</th>
-                
-            </tr>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Code</th>
+            <th>Roll No</th>
+            <th>Action</th>
+        </tr>
 
-            {% for s in students %}
-            <tr>
-                <td>{{ s.name }}</td>
-                <td>{{ s.code }}</td>
-                <td>{{ s.rollno }}</td>
-                <td>
-                    <form method="POST" action="/teacher/delete-student">
-                        <input type="hidden" name="student_id" value="{{ s.id }}">
-                        <button type="submit">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
+        {% for s in students %}
+        <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.unique_code }}</td>
+            <td>{{ s.roll_no }}</td>
+            <td>
+                <form method="POST" action="/delete_student">
+                    <input type="hidden" name="student_id" value="{{ s.id }}">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">No students found</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
 
 </body>
 </html>

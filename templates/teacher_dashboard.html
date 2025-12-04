@@ -87,43 +87,40 @@
     </style>
 
     <!-- GOOGLE CHARTS -->
-<script src="https://www.gstatic.com/charts/loader.js"></script>
-<script>
-google.charts.load('current', {'packages':['corechart']});
-google.charts.setOnLoadCallback(drawChart);
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
 
-function drawChart() {
-    var data = google.visualization.arrayToDataTable([
-        ['Status', 'Count'],
-        ['Accepted', Number('{{ accepted|default(0) }}')],
-        ['Rejected', Number('{{ rejected|default(0) }}')]
-    ]);
+    function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+            ['Status', 'Count'],
+            ['Accepted', Number('{{ accepted|default(0) }}')],
+            ['Rejected', Number('{{ rejected|default(0) }}')]
+        ]);
 
-    var options = {
-        title: '',
-        colors: ['#4CAF50', '#E74C3C'],
-        legend: { position: 'top' },
-        chartArea: { width: '90%', height: '80%' }
-    };
+        var options = {
+            title: '',
+            colors: ['#4CAF50', '#E74C3C'],
+            legend: { position: 'top' },
+            chartArea: { width: '90%', height: '80%' }
+        };
 
-    var chart = new google.visualization.PieChart(document.getElementById('piechart'));
-    chart.draw(data, options);
-}
+        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+        chart.draw(data, options);
+    }
 
-// Make chart responsive
-window.addEventListener('resize', drawChart);
-</script>
-
-
-
+    // Make chart responsive
+    window.addEventListener('resize', drawChart);
+    </script>
 </head>
 <body>
 
     <!-- Top bar -->
     <div class="topbar">
-        Welcome {{ teacher.name }}, ID: {{ teacher.code }}
+        Welcome {{ teacher.name }}, ID: {{ teacher.teacher_code }}
         <div class="right-buttons">
-            <button onclick="location.href='/change-password'">Change Password</button>
+            <button onclick="location.href='/change_password'">Change Password</button>
             <button onclick="location.href='/logout'">Logout</button>
         </div>
     </div>
@@ -144,12 +141,13 @@ window.addEventListener('resize', drawChart);
 
             <form method="POST" action="/complaint/action">
                 <input type="hidden" name="complaint_id" value="{{ c.id }}">
-
                 <button name="action" value="accept">Accept</button>
                 <button name="action" value="reject">Reject</button>
                 <button name="action" value="forward">Forward to Principal</button>
             </form>
         </div>
+        {% else %}
+        <p>No complaints assigned.</p>
         {% endfor %}
     </div>
 
@@ -157,7 +155,7 @@ window.addEventListener('resize', drawChart);
     <div class="card">
         <h3>Create Student Account</h3>
 
-        <form method="POST" action="/teacher/create-student">
+        <form method="POST" action="/create_student">
             <input type="text" name="fullname" placeholder="Full name" required><br>
             <input type="text" name="username" placeholder="Username" required><br>
             <input type="password" name="temp_password" placeholder="Temporary Password" required><br>
@@ -170,37 +168,36 @@ window.addEventListener('resize', drawChart);
     </div>
 
     <!-- Student List -->
-<div class="card">
-    <h3>My Students</h3>
+    <div class="card">
+        <h3>My Students</h3>
 
-    <table>
-        <tr>
-            <th>Name</th>
-            <th>Code</th>
-            <th>Roll No</th>
-            <th>Action</th>
-        </tr>
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Roll No</th>
+                <th>Action</th>
+            </tr>
 
-        {% for s in students %}
-        <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.unique_code }}</td>
-            <td>{{ s.roll_no }}</td>
-            <td>
-                <form method="POST" action="/delete_student">
-                    <input type="hidden" name="student_id" value="{{ s.id }}">
-                    <button type="submit">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4">No students found</td>
-        </tr>
-        {% endfor %}
-    </table>
-</div>
-
+            {% for s in students %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.unique_code }}</td>
+                <td>{{ s.roll_no }}</td>
+                <td>
+                    <form method="POST" action="/delete_student">
+                        <input type="hidden" name="student_id" value="{{ s.id }}">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">No students found</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 
 </body>
 </html>

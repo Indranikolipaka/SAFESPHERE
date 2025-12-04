@@ -6,9 +6,13 @@
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/principal.css">
   <style>
-    body { font-family: Arial, sans-serif; background: #fff0f5; }
+    body.principal-bg {
+      background: linear-gradient(to bottom right, #ffe6f2, #fff0f5);
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
+    }
     main { padding: 20px; max-height: calc(100vh - 80px); overflow-y: auto; }
-    .card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f7f7f7; }
@@ -20,82 +24,105 @@
     .highlight { background-color: #d1ecf1; }
   </style>
 </head>
-<body>
+<body class="principal-bg">
   <div class="container">
-    <header>
+    <header style="display:flex; align-items:center; justify-content:space-between; padding:10px 20px;">
       <h2>Hello Principal of RBVRR Womens College</h2>
-      <nav>
-        <a href="/change_password" class="btn">Change Password</a>
-        <a href="/logout" class="btn">Logout</a>
-      </nav>
+      <div style="text-align:right;">
+        {% if reset_token %}
+          <div style="font-family:monospace; background:#f7f7f7; padding:6px 10px; border-radius:6px; display:inline-block; margin-right:8px">
+            Token: {{ reset_token }}
+          </div>
+          <div class="muted" style="display:block; font-size:0.85rem">Expires: {{ reset_expires }}</div>
+        {% else %}
+          <form method="post" action="/generate_token" style="display:inline">
+            <button class="btn" type="submit">Generate Reset Token</button>
+          </form>
+        {% endif %}
+        <nav style="margin-top:6px;">
+          <a href="/change_password" class="btn">Change Password</a>
+          <a href="/logout" class="btn">Logout</a>
+        </nav>
+      </div>
     </header>
 
     <main>
+      <!-- Teacher Performance -->
       <section class="card">
-        <h3>Complaints Forwarded by Teachers</h3>
+        <h3>All Teachers</h3>
         <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Teacher</th>
-              <th>Status</th>
-              <th>Forwarded At</th>
-              <th>Actions</th>
+              <th>Teacher ID</th>
+              <th>Name</th>
+              <th>Accepted Complaints</th>
+              <th>Rejected Complaints</th>
             </tr>
           </thead>
-          <tbody id="forwarded-complaints-body">
-            {% for c in forwarded_complaints %}
-            <tr id="complaint-{{ c['id'] }}" class="{% if c['forwarded'] %}highlight{% endif %}">
-              <td>{{ c['id'] }}</td>
-              <td>{{ c['title'] }}</td>
-              <td>{{ c['teacher_name'] }}</td>
-              <td id="status-{{ c['id'] }}">{{ c['status'] }}</td>
-              <td>{{ c['forwarded_at'] }}</td>
-              <td>
-                <button class="btn accept" data-id="{{ c['id'] }}" data-action="accept">Accept</button>
-                <button class="btn reject" data-id="{{ c['id'] }}" data-action="reject">Reject</button>
-                <button class="btn delete" data-id="{{ c['id'] }}" data-action="delete">Delete</button>
-              </td>
+          <tbody>
+            {% for t in teachers %}
+            <tr>
+              <td>{{ t['teacher_code'] }}</td>
+              <td>{{ t['name'] }}</td>
+              <td>{{ t['performance_accepted'] or 0 }}</td>
+              <td>{{ t['performance_rejected'] or 0 }}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </section>
+
+      <!-- Student Reviews -->
+      <section class="card">
+        <h3>Student Reviews</h3>
+        {% if student_reviews %}
+        <table>
+          <thead>
+            <tr>
+              <th>Complaint ID</th>
+              <th>Student Name</th>
+              <th>Teacher</th>
+              <th>Review</th>
+              <th>Reviewed At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in student_reviews %}
+            <tr>
+              <td>{{ r['complaint_id'] }}</td>
+              <td>{{ r['student_name'] }}</td>
+              <td>{{ r['teacher_name'] }}</td>
+              <td>{{ r['review'] }}</td>
+              <td>{{ r['reviewed_at'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <div>No student reviews yet.</div>
+        {% endif %}
+      </section>
+
+      <!-- Create Teacher -->
+      <section class="card">
+        <h3>Create Teacher Account</h3>
+        <form method="post" action="/create_teacher">
+          <label for="fullname">Full Name</label><br>
+          <input id="fullname" name="fullname" required><br>
+          <label for="username">Username</label><br>
+          <input id="username" name="username" required><br>
+          <label for="password">Temporary Password</label><br>
+          <input id="password" name="password" type="password" required minlength="8"><br>
+          <label for="email">Email (optional)</label><br>
+          <input id="email" name="email" type="email"><br>
+          <label for="phone">Phone (optional)</label><br>
+          <input id="phone" name="phone"><br>
+          <button type="submit" class="btn">Create Teacher</button>
+        </form>
+        <p class="muted">Teachers can change their password after first login.</p>
+      </section>
+
     </main>
   </div>
-
-  <script>
-    function handleComplaint(id, action){
-      if(!confirm(`Are you sure you want to ${action} this complaint?`)) return;
-
-      fetch(`/principal/complaint/${id}/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success){
-          const row = document.getElementById('complaint-' + id);
-          if(action === 'delete') row.remove();
-          else {
-            row.querySelectorAll('button').forEach(b => b.disabled = true);
-            row.style.backgroundColor = action === 'accept' ? '#d4edda' : '#fff3cd';
-            document.getElementById('status-'+id).textContent = action==='accept' ? 'Accepted' : 'Rejected';
-          }
-        } else {
-          alert('Error: ' + data.error);
-        }
-      })
-      .catch(err => alert('Something went wrong.'));
-    }
-
-    document.querySelectorAll('button[data-id]').forEach(btn => {
-      btn.addEventListener('click', function(){
-        handleComplaint(this.dataset.id, this.dataset.action);
-      });
-    });
-  </script>
 </body>
 </html>

@@ -19,9 +19,7 @@
     .btn { padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer; margin-right:4px; }
     .btn.accept { background-color:#28a745; color:white; }
     .btn.reject { background-color:#ffc107; color:black; }
-    .btn.forward { background-color:#17a2b8; color:white; }
     .btn:disabled { opacity:0.6; cursor:not-allowed; }
-    .highlight { background-color: #d1ecf1; } /* forwarded complaints highlight */
   </style>
 </head>
 <body class="teacher-bg">
@@ -63,20 +61,15 @@
           </thead>
           <tbody>
             {% for c in complaints %}
-            <tr id="complaint-{{ c.id }}" class="{% if c.forwarded %}highlight{% endif %}">
+            <tr id="complaint-{{ c.id }}">
               <td>{{ c.id }}</td>
               <td>{{ c.student_name }}</td>
               <td>{{ c.category }}</td>
               <td>{{ c.description }}</td>
               <td class="status">{{ c.status }}</td>
               <td>
-                {% if not c.forwarded %}
                   <button class="btn accept" data-id="{{ c.id }}" data-action="accept">Accept</button>
                   <button class="btn reject" data-id="{{ c.id }}" data-action="reject">Reject</button>
-                  <button class="btn forward" data-id="{{ c.id }}" data-action="forward">Forward</button>
-                {% else %}
-                  <span>Forwarded</span>
-                {% endif %}
               </td>
             </tr>
             {% else %}
@@ -122,77 +115,36 @@
   </div>
 
   <script>
-    // Complaint action buttons (Accept / Reject / Forward)
+    // Complaint action buttons (Accept / Reject)
+    function handleTeacherComplaint(id, action){
+      if(!confirm(`Are you sure you want to ${action} this complaint?`)) return;
+
+      fetch(`/teacher/complaint/${id}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.success){
+          const row = document.getElementById('complaint-' + id);
+          row.querySelectorAll('button').forEach(b => b.disabled = true);
+          row.style.backgroundColor = action === 'accept' ? '#d4edda' : '#fff3cd';
+          row.querySelector('.status').textContent = action.charAt(0).toUpperCase() + action.slice(1);
+        } else {
+          alert('Error: ' + (data.error || 'Unknown'));
+        }
+      })
+      .catch(err => alert('Something went wrong.'));
+    }
+
+    // Attach event listeners
     document.querySelectorAll('button[data-id]').forEach(btn => {
       btn.addEventListener('click', function(){
-        const id = this.dataset.id;
-        const action = this.dataset.action;
-
-        if(!confirm(`Are you sure you want to ${action} this complaint?`)) return;
-
-        fetch(`/teacher/complaint/${id}/${action}`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          if(data.success){
-            const row = document.getElementById(`complaint-${id}`);
-            const statusCell = row.querySelector('.status');
-
-            if(action === 'forward'){
-              statusCell.innerText = 'Forwarded to Principal';
-              row.classList.add('highlight');
-              row.querySelectorAll('button').forEach(b => b.disabled = true);
-            } else {
-              statusCell.innerText = action.charAt(0).toUpperCase() + action.slice(1);
-              row.querySelectorAll('button').forEach(b => b.disabled = true);
-            }
-
-            alert('Action completed!');
-          } else {
-            alert('Error: ' + (data.error || 'Unknown'));
-          }
-        })
-        .catch(err => alert('Fetch error: ' + err));
+        handleTeacherComplaint(this.dataset.id, this.dataset.action);
       });
     });
   </script>
-  <script>
-  // Complaint actions for teacher
-  function handleTeacherComplaint(id, action){
-    if(!confirm(`Are you sure you want to ${action} this complaint?`)) return;
-    
-    fetch(`/teacher/complaint/${id}/${action}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    })
-    .then(res => res.json())
-    .then(data => {
-      if(data.success){
-        const row = document.getElementById('complaint-' + id);
-        if(action === 'delete' || action === 'forward') {
-          // Remove forwarded/deleted complaint from table
-          row.remove();
-        } else {
-          row.querySelectorAll('button').forEach(b => b.disabled = true);
-          row.style.backgroundColor = action === 'accept' ? '#d4edda' : '#fff3cd';
-          document.getElementById('status-' + id).textContent = action === 'accept' ? 'Accepted' : 'Rejected';
-        }
-      } else {
-        alert('Error: ' + data.error);
-      }
-    })
-    .catch(err => alert('Something went wrong.'));
-  }
-
-  // Attach event listeners
-  document.querySelectorAll('button[data-id]').forEach(btn => {
-    btn.addEventListener('click', function(){
-      const id = this.dataset.id;
-      const action = this.dataset.action;
-      handleTeacherComplaint(id, action);
-    });
-  });
-</script>
 
 </body>
 </html>
